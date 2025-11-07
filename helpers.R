@@ -8,32 +8,38 @@ filter_data <- function(data) {
   # Calculate the percentage change for each historic-present pair and add to data_change
   data_change <- data_change %>%
     rowwise() %>%
-    mutate(across(all_of(columns_present), 
-                  .fns = ~ (. - get(gsub("_P$", "_H", cur_column()))) / 
-                    get(gsub("_P$", "_H", cur_column())) * 100, #Convert to percentage change
-                  .names = "pct_change_{.col}")) %>%
+    mutate(across(
+      all_of(columns_present),
+      .fns = ~ (. - get(gsub(
+        "_P$", "_H", cur_column()
+      ))) /
+        get(gsub("_P$", "_H", cur_column())) * 100,
+      #Convert to percentage change
+      .names = "pct_change_{.col}"
+    )) %>%
     ungroup()
   
   # Select only the desired columns for the output
   data_change %>%
-    select(Tribe, grep("pct_change_", names(data_change), value = TRUE), Acres, Endow_Raised_Parcel)
+    select(Tribe,
+           grep("pct_change_", names(data_change), value = TRUE),
+           Acres,
+           Endow_Raised_Parcel)
 }
 
-summary_table <- function(data, var_labels) {
+violin_plot_summary <- function(data, var_labels) {
   data %>%
-    summarise(across(all_of(var_labels), 
-                     list(Mean = ~ mean(.x, na.rm = TRUE), 
-                          Median = ~ median(.x, na.rm = TRUE)))) %>% 
+    summarise(across(all_of(var_labels), list(
+      Mean = ~ mean(.x, na.rm = TRUE),
+      Median = ~ median(.x, na.rm = TRUE)
+    ))) %>%
     pivot_longer(
       everything(),
       names_to = c("Variable", "Statistic"),
       names_sep = "_(?=[^_]+$)",
       values_to = "Value"
-    ) %>% 
-    pivot_wider(
-      names_from = Statistic, 
-      values_from = Value
-    )
+    ) %>%
+    pivot_wider(names_from = Statistic, values_from = Value)
 }
 
 violin_plot <- function(df, var, var_labels, title = NULL) {
@@ -41,14 +47,31 @@ violin_plot <- function(df, var, var_labels, title = NULL) {
   y_limits <- range(df[[var]], na.rm = TRUE) * c(0.9, 1.1)
   
   p <- ggplot(df, aes(x = 1, y = .data[[var]])) +
-    geom_violin(fill = "lightblue", color = "black", alpha = 0.7) +
-    geom_jitter(aes(text = paste0("Tribe: ", Tribe, 
-                                 "<br>Acres: ", round(Acres),
-                                 "<br>Change: ", round(.data[[var]], 2), "%")
-                    ), 
-                width = 0.2, alpha = 0.7, color = "blue") +
-    geom_point(aes(y = mean_value, text = paste0("Mean: ", round(mean_value, 2), "%")),
-               color = "red", shape = 18, size = 3) +
+    geom_violin(fill = "lightblue",
+                color = "black",
+                alpha = 0.7) +
+    geom_jitter(
+      aes(
+        text = paste0(
+          "Tribe: ",
+          Tribe,
+          "<br>Acres: ",
+          round(Acres),
+          "<br>Change: ",
+          round(.data[[var]], 2),
+          "%"
+        )
+      ),
+      width = 0.2,
+      alpha = 0.7,
+      color = "blue"
+    ) +
+    geom_point(
+      aes(y = mean_value, text = paste0("Mean: ", round(mean_value, 2), "%")),
+      color = "red",
+      shape = 18,
+      size = 3
+    ) +
     theme_minimal(base_size = 10) +
     labs(title = title, y = "% change") +
     theme(
@@ -60,27 +83,46 @@ violin_plot <- function(df, var, var_labels, title = NULL) {
       panel.grid.major.x = element_blank(),
       panel.grid.minor.x = element_blank()
     ) +
-    scale_y_continuous(labels = scales::label_percent(scale = 1), limits = y_limits)
+    scale_y_continuous(labels = scales::label_percent(scale = 1),
+                       limits = y_limits)
   
   ggplotly(p, tooltip = "text") %>% style(hoverinfo = "skip", traces = 0)
 }
 
 prod_sec_scatterplot <- function(df) {
-  p <- ggplot(df, aes(
-    x = pct_change_nccpi3all_P,
-    y = pct_change_Food_Insecurity_Rate_2018_P,
-    size = Acres,
-    text = paste0("Tribe: ", Tribe, 
-                 "<br>Acres: ", round(Acres), 
-                 "<br>Food production: ", round(pct_change_nccpi3all_P, 2), "%",
-                 "<br>Food insecurity: ", round(pct_change_Food_Insecurity_Rate_2018_P, 2), "%")
-    )) +
-    geom_point(shape = 21, color = "black", fill = alpha("#ea801c", 0.4), stroke = 0.5) +
-    labs(x = "% Change in Food Productivity",
-         y = "% Change in Food Insecurity",
-         size = "Acres") +
-    geom_hline(yintercept = 0, color = "black", size = 0.5) +
-    geom_vline(xintercept = 0, color = "black", size = 0.5) +
+  p <- ggplot(
+    df,
+    aes(
+      x = pct_change_nccpi3all_P,
+      y = pct_change_Food_Insecurity_Rate_2018_P,
+      size = Acres,
+      text = paste0(
+        "Tribe: ",
+        Tribe,
+        "<br>Acres: ",
+        round(Acres),
+        "<br>Food production: ",
+        round(pct_change_nccpi3all_P, 2),
+        "%",
+        "<br>Food insecurity: ",
+        round(pct_change_Food_Insecurity_Rate_2018_P, 2),
+        "%"
+      )
+    )
+  ) +
+    geom_point(
+      shape = 21,
+      color = "black",
+      fill = alpha("#ea801c", 0.4),
+      stroke = 0.5
+    ) +
+    labs(x = "% Change in Food Productivity", y = "% Change in Food Insecurity", size = "Acres") +
+    geom_hline(yintercept = 0,
+               color = "black",
+               size = 0.5) +
+    geom_vline(xintercept = 0,
+               color = "black",
+               size = 0.5) +
     theme_classic(base_size = 14) +
     theme(
       text = element_text(family = "arial"),
@@ -89,29 +131,49 @@ prod_sec_scatterplot <- function(df) {
       axis.line = element_line(color = "black"),
       panel.grid = element_blank()
     ) +
-    scale_size_continuous(range = c(3, 10),
-                          breaks = c(1e4, 1e5, 5e5, 1e6, 2e6),
-                          labels = c("10,000", "100,000", "500,000", "1,000,000", "2,000,000"))
+    scale_size_continuous(
+      range = c(3, 10),
+      breaks = c(1e4, 1e5, 5e5, 1e6, 2e6),
+      labels = c("10,000", "100,000", "500,000", "1,000,000", "2,000,000")
+    )
   
   ggplotly(p, tooltip = "text")
 }
 
 temp_precip_scatterplot <- function(df) {
-  p <- ggplot(df, aes(
-    x = pct_change_precip_mean_ann_P, 
-    y = pct_change_temp_mean_ann_P, 
-    size = Acres,
-    text = paste0("Tribe: ", Tribe, 
-                  "<br>Acres: ", round(Acres), 
-                  "<br>Temperature: ", round(pct_change_precip_mean_ann_P, 2), "%",
-                  "<br>Precipitation: ", round(pct_change_temp_mean_ann_P, 2), "%")
-  )) +
-    geom_point(shape = 21, color = "black", fill = alpha("#1a80bb", 0.4), stroke = 0.5) + 
-    labs(x = "% Change in Annual Precipitation",
-         y = "% Change in Annual Temperature",
-         size = "Acres") +
-    geom_hline(yintercept = 0, color = "black", size = 0.5) +  
-    geom_vline(xintercept = 0, color = "black", size = 0.5) + 
+  p <- ggplot(
+    df,
+    aes(
+      x = pct_change_precip_mean_ann_P,
+      y = pct_change_temp_mean_ann_P,
+      size = Acres,
+      text = paste0(
+        "Tribe: ",
+        Tribe,
+        "<br>Acres: ",
+        round(Acres),
+        "<br>Temperature: ",
+        round(pct_change_precip_mean_ann_P, 2),
+        "%",
+        "<br>Precipitation: ",
+        round(pct_change_temp_mean_ann_P, 2),
+        "%"
+      )
+    )
+  ) +
+    geom_point(
+      shape = 21,
+      color = "black",
+      fill = alpha("#1a80bb", 0.4),
+      stroke = 0.5
+    ) +
+    labs(x = "% Change in Annual Precipitation", y = "% Change in Annual Temperature", size = "Acres") +
+    geom_hline(yintercept = 0,
+               color = "black",
+               size = 0.5) +
+    geom_vline(xintercept = 0,
+               color = "black",
+               size = 0.5) +
     theme_classic(base_size = 14) +
     theme(
       text = element_text(family = "arial"),
@@ -120,12 +182,14 @@ temp_precip_scatterplot <- function(df) {
       axis.line = element_line(color = "black"),
       panel.grid = element_blank()
     ) +
-    scale_size_continuous(range = c(3, 10),
-                          breaks = c(1e4, 1e5, 5e5, 1e6, 2e6),  
-                          labels = c("10,000", "100,000", "500,000", "1,000,000", "2,000,000"))  
+    scale_size_continuous(
+      range = c(3, 10),
+      breaks = c(1e4, 1e5, 5e5, 1e6, 2e6),
+      labels = c("10,000", "100,000", "500,000", "1,000,000", "2,000,000")
+    )
   
   ggplotly(p, tooltip = "text")
-
+  
 }
 
 plot_temp_precip_for_tribe_gg <- function(df, tribe_name) {
@@ -139,19 +203,35 @@ plot_temp_precip_for_tribe_gg <- function(df, tribe_name) {
   
   temp_data <- data.frame(
     Month = rep(months, 2),
-    Mean = c(sapply(months, function(i) tribe_data[[paste0("temp_mean_", i, "_P")]]),
-             sapply(months, function(i) tribe_data[[paste0("temp_mean_", i, "_H")]])),
-    StdDev = c(sapply(months, function(i) tribe_data[[paste0("temp_std_", i, "_P")]]),
-               sapply(months, function(i) tribe_data[[paste0("temp_std_", i, "_H")]])),
+    Mean = c(
+      sapply(months, function(i)
+        tribe_data[[paste0("temp_mean_", i, "_P")]]),
+      sapply(months, function(i)
+        tribe_data[[paste0("temp_mean_", i, "_H")]])
+    ),
+    StdDev = c(
+      sapply(months, function(i)
+        tribe_data[[paste0("temp_std_", i, "_P")]]),
+      sapply(months, function(i)
+        tribe_data[[paste0("temp_std_", i, "_H")]])
+    ),
     DataType = rep(c("Present", "Historic"), each = 12)
   )
   
   precip_data <- data.frame(
     Month = rep(months, 2),
-    Mean = c(sapply(months, function(i) tribe_data[[paste0("precip_mean_", i, "_P")]]),
-             sapply(months, function(i) tribe_data[[paste0("precip_mean_", i, "_H")]])),
-    StdDev = c(sapply(months, function(i) tribe_data[[paste0("precip_std_", i, "_P")]]),
-               sapply(months, function(i) tribe_data[[paste0("precip_std_", i, "_H")]])),
+    Mean = c(
+      sapply(months, function(i)
+        tribe_data[[paste0("precip_mean_", i, "_P")]]),
+      sapply(months, function(i)
+        tribe_data[[paste0("precip_mean_", i, "_H")]])
+    ),
+    StdDev = c(
+      sapply(months, function(i)
+        tribe_data[[paste0("precip_std_", i, "_P")]]),
+      sapply(months, function(i)
+        tribe_data[[paste0("precip_std_", i, "_H")]])
+    ),
     DataType = rep(c("Present", "Historic"), each = 12)
   )
   
@@ -165,7 +245,13 @@ plot_temp_precip_for_tribe_gg <- function(df, tribe_name) {
     )
   
   # Temperature plot
-  temp_plot <- ggplot(temp_data, aes(x = Month, y = Mean, color = DataType, group = DataType)) +
+  temp_plot <- ggplot(temp_data,
+                      aes(
+                        x = Month,
+                        y = Mean,
+                        color = DataType,
+                        group = DataType
+                      )) +
     geom_line(aes(text = paste0("Mean: ", round(Mean, 2), "°C")), size = 1) +
     geom_point(aes(text = paste0("Mean: ", round(Mean, 2), "°C")), size = 3) +
     geom_errorbar(aes(ymin = Mean - StdDev, ymax = Mean + StdDev), width = 0.2) +
@@ -176,7 +262,13 @@ plot_temp_precip_for_tribe_gg <- function(df, tribe_name) {
   temp_plotly <- ggplotly(temp_plot, tooltip = "text")
   
   # Precipitation plot
-  precip_plot <- ggplot(precip_data, aes(x = Month, y = Mean, color = DataType, group = DataType)) +
+  precip_plot <- ggplot(precip_data,
+                        aes(
+                          x = Month,
+                          y = Mean,
+                          color = DataType,
+                          group = DataType
+                        )) +
     geom_line(aes(text = paste0("Mean: ", round(Mean, 2), "mm")), size = 1) +
     geom_point(aes(text = paste0("Mean: ", round(Mean, 2), "mm")), size = 3) +
     geom_errorbar(aes(ymin = Mean - StdDev, ymax = Mean + StdDev), width = 0.2) +
@@ -191,13 +283,61 @@ plot_temp_precip_for_tribe_gg <- function(df, tribe_name) {
     precip_plotly$x$data[[i]]$showlegend <- FALSE
   }
   
+  
   combined_plt <- subplot(
-    temp_plotly, precip_plotly, nrows = 2, shareX = TRUE, titleY = TRUE, heights = c(0.48, 0.48)
+    temp_plotly,
+    precip_plotly,
+    nrows = 2,
+    shareX = TRUE,
+    titleY = TRUE,
+    heights = c(0.48, 0.48)
   ) %>%
     layout(
-      title = list(text = tribe_name, x = 0.5, xanchor = "center", font = list(size = 18, family = "arial")),
+      title = list(
+        text = tribe_name,
+        x = 0.5,
+        xanchor = "center",
+        font = list(size = 18, family = "arial")
+      ),
       margin = list(t = 80)
     )
   
   combined_plt
+}
+
+map <- function(df, shape_file, var, var_labels) {
+  tribes <- df$Tribe
+  tribe_shapes <- shape_file %>% filter(TRIBE_NAME %in% tribes)
+  
+  tribe_data <- tribe_shapes %>%
+    left_join(df, by = c("TRIBE_NAME" = "Tribe"))
+  
+  pal <- colorNumeric(
+    palette = brewer.pal(11, "RdBu"),
+    domain = tribe_data[[var]],
+    na.color = "gray",
+    reverse = TRUE
+  )
+  
+  var_display <- names(var_labels)[var_labels == var]
+  
+  leaflet() %>%
+    addTiles() %>%
+    addPolygons(
+      data = tribe_shapes,
+      color = "red",
+      weight = 2,
+      fillColor = pal(tribe_data[[var]]),
+      fillOpacity = 0.8,
+      popup = paste0(tribe_data[["TRIBE_NAME"]], "<br>Change: ", round(tribe_data[[var]], 2), "%")
+    ) %>%
+    addLegend(
+      pal = pal,
+      values = tribe_data[[var]],
+      title = var_display,
+      position = "bottomright"
+    ) %>%
+    setView(lng = -97,
+            lat = 38,
+            zoom = 4)
 }
