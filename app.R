@@ -10,10 +10,35 @@ library(sf)
 library(RColorBrewer)
 
 source("helpers.R")
+
+# Load data ----
 all_data <- read_csv('data/Data_Analysis_all.csv')
 filter_data <- filter_data(all_data)
-university_list <- read_csv('data/University_List.csv')
-shape_file <- st_read('data/shape-files/AmericanIndianReservations.shp')
+res_shapes <- st_read('data/reservation-shapes/AmericanIndianReservations.shp')
+uni_list <- read_csv('data/university_list.csv')
+
+uni_shapes <- st_read('data/landgrabu-data/shapes/University_Points.shp')
+uni_info <- read_csv('data/landgrabu-data/csvs/Universities.csv')
+uni_data <- uni_shapes %>%
+  left_join(uni_info, by = c("Uni_Name" = "University")) %>%
+  st_cast("POINT", warn = FALSE)
+
+parcel_shapes <- st_read('data/landgrabu-data/shapes/Parcel_Polygons.shp')
+parcel_info <- read_csv('data/landgrabu-data/csvs/Parcels.csv')
+parcel_data <- parcel_shapes %>%
+  left_join(parcel_info, by = "MTRSA_LG") %>%
+  st_make_valid()
+
+# Extract polygons
+parcel_data <- parcel_data %>%
+  filter(!st_is_empty(.)) %>%
+  st_cast("MULTIPOLYGON", warn = FALSE) %>%
+  filter(!st_is_empty(.))
+
+# Make sure CRS matches other layers
+if (st_crs(parcel_data)$input != "EPSG:4326") {
+  parcel_data <- st_transform(parcel_data, 4326)
+}
 
 var_labels <- c(
   "Food Insecurity" = "pct_change_Food_Insecurity_Rate_2018_P",
@@ -28,9 +53,10 @@ var_labels <- c(
   "Precipitation" = "pct_change_precip_mean_ann_P"
 )
 
+# UI layout ----
 ui <- fluidPage(sidebarLayout(
   sidebarPanel(
-    selectInput("uni", "Select a university", choices = university_list$Universities),
+    selectInput("uni", "Select a university", choices = uni_list$Universities),
     uiOutput("page_select_input")
   ),
   mainPanel(
@@ -49,7 +75,7 @@ ui <- fluidPage(sidebarLayout(
         height = "40vh"
       ),
       tabPanel("By tribe", plotlyOutput("plot_temp_precip_for_tribe_gg")),
-      tabPanel("Map", div(style = "padding: 20px;", leafletOutput("map_test")))
+      tabPanel("Map", div(style = "padding: 20px;", leafletOutput("map")))
     )
   )
 ))
@@ -67,21 +93,37 @@ server <- function(input, output, session) {
   })
   
   selected_data <- reactive({
-    if (!is.null(input$uni) &&
-        input$uni != "All 1862 Land Grant Institutions") {
-      file <- paste0("data/university-data/Data_Analysis_",
-                     input$uni,
-                     ".csv")
-      filter_data <- read_csv(file)
+    req(input$uni)
+    if (input$uni == "All 1862 Land Grant Institutions") {
+      filter_data(all_data)
+    } else {
+      file_path <- paste0("data/university-data/Data_Analysis_", input$uni, ".csv")
+      filter_data(read_csv(file_path))
     }
-    filter_data(filter_data)
   })
-  observe({
-    data_for_plot <- selected_data()
+  
+  
+  selected_uni_data <- reactive({
+    req(input$uni)
+    if (input$uni == "All 1862 Land Grant Institutions") {
+      uni_data
+    } else {
+      uni_data %>% filter(Uni_Name == input$uni)
+    }
+  })
+  
+  selected_parcel_data <- reactive({
+    req(input$uni)
+    if (input$uni == "All 1862 Land Grant Institutions") {
+      parcel_data
+    } else {
+      parcel_data %>% filter(University == input$uni)
+    }
   })
   
   # Plots
   output$violin_plot <- renderPlotly({
+    req(input$var)
     violin_plot(selected_data(), input$var)
   })
   
@@ -102,8 +144,16 @@ server <- function(input, output, session) {
     plot_temp_precip_for_tribe_gg(all_data, input$tribe)
   })
   
-  output$map_test <- renderLeaflet({
-    map(selected_data(), shape_file, input$var, var_labels)
+  output$map <- renderLeaflet({
+    req(input$var)
+    map(
+      selected_data(),
+      selected_uni_data(),
+      selected_parcel_data(),
+      res_shapes,
+      input$var,
+      var_labels
+    )
   })
 }
 

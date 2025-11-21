@@ -305,21 +305,22 @@ plot_temp_precip_for_tribe_gg <- function(df, tribe_name) {
   combined_plt
 }
 
-map <- function(df, shape_file, var, var_labels) {
+map <- function(df, uni_data, parcel_data, res_shapes, var, var_labels) {
   tribes <- df$Tribe
-  tribe_shapes <- shape_file %>% filter(TRIBE_NAME %in% tribes)
-  
+  tribe_shapes <- res_shapes %>% filter(TRIBE_NAME %in% tribes)
   tribe_data <- tribe_shapes %>%
     left_join(df, by = c("TRIBE_NAME" = "Tribe"))
   
+  uni_points <- uni_data %>% st_cast("POINT", warn = FALSE)
+  
   pal <- colorNumeric(
-    palette = brewer.pal(11, "RdBu"),
+    palette = brewer.pal(9, "Reds"),
     domain = tribe_data[[var]],
     na.color = "gray",
-    reverse = TRUE
+    reverse = FALSE
   )
   
-  var_display <- names(var_labels)[var_labels == var]
+  legend_var <- names(var_labels)[var_labels == var]
   
   leaflet() %>%
     addTiles() %>%
@@ -329,15 +330,53 @@ map <- function(df, shape_file, var, var_labels) {
       weight = 2,
       fillColor = pal(tribe_data[[var]]),
       fillOpacity = 0.8,
-      popup = paste0(tribe_data[["TRIBE_NAME"]], "<br>Change: ", round(tribe_data[[var]], 2), "%")
+      popup = paste0(
+        tribe_data[["TRIBE_NAME"]], 
+        "<br>Change: ", 
+        round(tribe_data[[var]], 2), 
+        "%"),
+      group = "Tribes"
+    ) %>% 
+    addPolygons(
+      data = parcel_data,
+      color = "lightsteelblue",
+      weight = 1,
+      fillColor = "lightsteelblue",
+      fillOpacity = 0.8,
+      group = "Parcels"
+    ) %>%
+    addCircleMarkers(
+      data = uni_points,
+      radius = 4,
+      color = "#27408B",
+      fillColor = "#27408B",
+      fillOpacity = 0.8,
+      popup = paste0(
+        uni_data[["Uni_Name"]],
+        "<br>Year founded: ",
+        uni_data[["Yr_Uni_Founded"]],
+        "<br>Raised: ",
+        uni_data[["Adjusted_ Total_Value_1914"]]
+      ),
+      group = "Universities"
     ) %>%
     addLegend(
       pal = pal,
       values = tribe_data[[var]],
-      title = var_display,
+      title = legend_var,
       position = "bottomright"
+    ) %>%
+    addLegend(
+      position = "bottomright",
+      colors = c("#27408B", "lightsteelblue"),       
+      labels = c("Universities", "Parcels"),
+      title = "Legend"
+    ) %>%
+    addLayersControl(
+      overlayGroups = c("Universities", "Tribes", "Parcels"),
+      options = layersControlOptions(collapsed = FALSE)
     ) %>%
     setView(lng = -97,
             lat = 38,
-            zoom = 4)
+            zoom = 3)
 }
