@@ -7,118 +7,156 @@ library(tidyr)
 library(plotly)
 library(leaflet)
 library(sf)
+library(leafgl)
 library(RColorBrewer)
 
-source("helpers.R")
+source('helpers.R')
 
 # Load data ----
-all_data <- read_csv('data/Data_Analysis_all.csv')
+all_data <- read_csv('data/Data_Analysis_all.csv', show_col_types = FALSE)
 filter_data <- filter_data(all_data)
-res_shapes <- st_read('data/reservation-shapes/AmericanIndianReservations.shp')
-uni_list <- read_csv('data/university_list.csv')
-
-uni_shapes <- st_read('data/landgrabu-data/shapes/University_Points.shp')
-uni_info <- read_csv('data/landgrabu-data/csvs/Universities.csv')
+res_shapes  <- readRDS('data/preprocessed/reservations.rds')
+uni_shapes  <- readRDS('data/preprocessed/universities.rds')
+uni_list <- read_csv('data/University_List.csv', show_col_types = FALSE)
+uni_info <- read_csv('data/landgrabu-data/csvs/Universities.csv',
+                     show_col_types = FALSE)
 uni_data <- uni_shapes %>%
-  left_join(uni_info, by = c("Uni_Name" = "University")) %>%
-  st_cast("POINT", warn = FALSE)
+  mutate(Uni_Name = gsub("/", " & ", Uni_Name)) %>%
+  left_join(uni_info %>% mutate(University = gsub("/", " & ", University)),
+            by = c('Uni_Name' = 'University')) %>%
+  st_cast('POINT', warn = FALSE)
+parcel_data <- readRDS('data/preprocessed/parcel_data.rds')
+#parcel_data <- readRDS('data/preprocessed/parcel_data_aggregated.rds')
 
-parcel_shapes <- st_read('data/landgrabu-data/shapes/Parcel_Polygons.shp')
-parcel_info <- read_csv('data/landgrabu-data/csvs/Parcels.csv')
-parcel_data <- parcel_shapes %>%
-  left_join(parcel_info, by = "MTRSA_LG") %>%
-  st_make_valid()
-
-# Extract polygons
-parcel_data <- parcel_data %>%
-  filter(!st_is_empty(.)) %>%
-  st_cast("MULTIPOLYGON", warn = FALSE) %>%
-  filter(!st_is_empty(.))
-
-# Make sure CRS matches other layers
-if (st_crs(parcel_data)$input != "EPSG:4326") {
-  parcel_data <- st_transform(parcel_data, 4326)
-}
 
 var_labels <- c(
-  "Food Insecurity" = "pct_change_Food_Insecurity_Rate_2018_P",
-  "Child Food Insecurity" = "pct_change_Child_Food_Insecurity_Rate_2018_P",
-  "Cost Per Meal" = "pct_change_Cost_Per_Meal_2018_P",
-  "Budget Shortfall" = "pct_change_Weighted_Annual_Food_Budget_Shortfall_2018_P",
-  "Food Productivity" = "pct_change_nccpi3all_P",
-  "FP: Small Grains" = "pct_change_nccpi3sg_P",
-  "FP: Soybeans" = "pct_change_nccpi3soy_P",
-  "FP: Corn" = "pct_change_nccpi3corn_P",
-  "Temperature" = "pct_change_temp_mean_ann_P",
-  "Precipitation" = "pct_change_precip_mean_ann_P"
+  'Food Insecurity' = 'pct_change_Food_Insecurity_Rate_2018_P',
+  'Child Food Insecurity' = 'pct_change_Child_Food_Insecurity_Rate_2018_P',
+  'Cost Per Meal' = 'pct_change_Cost_Per_Meal_2018_P',
+  'Budget Shortfall' = 'pct_change_Weighted_Annual_Food_Budget_Shortfall_2018_P',
+  'Food Productivity' = 'pct_change_nccpi3all_P',
+  'FP: Small Grains' = 'pct_change_nccpi3sg_P',
+  'FP: Soybeans' = 'pct_change_nccpi3soy_P',
+  'FP: Corn' = 'pct_change_nccpi3corn_P',
+  'Temperature' = 'pct_change_temp_mean_ann_P',
+  'Precipitation' = 'pct_change_precip_mean_ann_P'
 )
 
 # UI layout ----
-ui <- fluidPage(sidebarLayout(
-  sidebarPanel(
-    selectInput("uni", "Select a university", choices = uni_list$Universities),
-    uiOutput("page_select_input")
-  ),
-  mainPanel(
-    tabsetPanel(
-      id = "page",
-      tabPanel(
-        "Violin plots",
-        plotlyOutput("violin_plot"),
-        tableOutput("violin_plot_table")
+ui <- page_sidebar(
+  sidebar = sidebar(id = "sidebar", uiOutput('page_select_input')),
+  tabsetPanel(
+    id = 'page',
+    tabPanel('Home', div(
+      style = 'margin: 20px;',
+      p(
+        'The Morrill Land-Grant Acts of 1862 and 1890 were federal laws that funded
+        the creation of public colleges focused on agriculture and engineering.
+        The 1862 Act granted states 30,000 acres of federal land to sell or develop
+        for each of their representatives and senators in Congress. In total, nearly 
+        11 million acres, used to fund 52 land-grant universities, had been obtained 
+        through the violence-backed dispossession of Indigenous tribes.'
       ),
-      tabPanel(
-        "Scatterplots",
-        plotlyOutput("prod_sec_scatterplot", height =
-                       "45vh"),
-        plotlyOutput("temp_precip_scatterplot"),
-        height = "40vh"
+      p(
+        'This app contains data visualizations exploring crop production, food 
+        insecurity, and climate trends in Indigenous tribes affected by the law.'
+      )
+    )),
+    tabPanel(
+      'Violin plots',
+      plotlyOutput('violin_plot', width = '60vh', height = '80vh'),
+      tableOutput('violin_plot_table')
+    ),
+    tabPanel(
+      'Scatterplots',
+      plotlyOutput('prod_sec_scatterplot', height = '40vh'),
+      plotlyOutput('temp_precip_scatterplot', height = '40vh')
+    ),
+    tabPanel('By tribe', plotlyOutput('plot_temp_precip_for_tribe_gg')),
+    tabPanel('Map', div(
+      style = 'padding: 20px;',
+      p(
+        'We have chosen to omit the option to view all parcels for efficiency reasons, but',
+        a('landgrabu.org', href = 'https://landgrabu.org', target = '_blank'),
+        'provides this option.'
       ),
-      tabPanel("By tribe", plotlyOutput("plot_temp_precip_for_tribe_gg")),
-      tabPanel("Map", div(style = "padding: 20px;", leafletOutput("map")))
-    )
+      leafletOutput('map', width = '120vh', height = '80vh')
+    ))
   )
-))
+)
 
 # Define server logic ----
 server <- function(input, output, session) {
   output$page_select_input <- renderUI({
     switch(
       input$page,
-      "Violin plots" = selectInput("var", "Variable", choices = var_labels),
-      "By tribe" = selectInput("tribe", "Tribe", choices = sort(unique(all_data$Tribe))),
-      "Map" = selectInput("var", "Variable", choices = var_labels),
+      'Home' = tagList(
+        selectInput('uni', 'University', choices = uni_list$Universities),
+        selectInput('tribe', 'Tribe', choices = c('All Tribes', sort(
+          unique(all_data$Tribe)
+        ))),
+        selectInput('var', 'Variable', choices = var_labels)
+      ),
+      'Violin plots' = tagList(
+        selectInput('uni', 'University', choices = uni_list$Universities),
+        selectInput('var', 'Variable', choices = var_labels)
+      ),
+      'Scatterplots' = tagList(
+        selectInput('uni', 'University', choices = uni_list$Universities),
+      ),
+      'By tribe' = tagList(selectInput('tribe', 'Tribe', choices = sort(
+        unique(all_data$Tribe)
+      ))),
+      'Map' = tagList(
+        selectInput('uni', 'University', choices = uni_list$Universities),
+        selectInput('tribe', 'Tribe', choices = c('All Tribes', sort(
+          unique(all_data$Tribe)
+        ))),
+        selectInput('var', 'Variable', choices = var_labels)
+      ),
       NULL
     )
   })
   
   selected_data <- reactive({
     req(input$uni)
-    if (input$uni == "All 1862 Land Grant Institutions") {
+    if (input$uni == 'All 1862 Land Grant Institutions') {
       filter_data(all_data)
     } else {
-      file_path <- paste0("data/university-data/Data_Analysis_", input$uni, ".csv")
+      file_path <- paste0('data/university-data/Data_Analysis_',
+                          input$uni,
+                          '.csv')
       filter_data(read_csv(file_path))
     }
   })
   
-  
   selected_uni_data <- reactive({
     req(input$uni)
-    if (input$uni == "All 1862 Land Grant Institutions") {
+    if (input$uni == 'All 1862 Land Grant Institutions') {
       uni_data
     } else {
-      uni_data %>% filter(Uni_Name == input$uni)
+      uni_names <- strsplit(input$uni, " & ")[[1]]
+      uni_data %>%
+        filter(Uni_Name %in% uni_names)
     }
   })
   
   selected_parcel_data <- reactive({
     req(input$uni)
-    if (input$uni == "All 1862 Land Grant Institutions") {
+    
+    data <- if (input$uni == 'All 1862 Land Grant Institutions') {
       parcel_data
     } else {
-      parcel_data %>% filter(University == input$uni)
+      parcel_data %>%
+        filter(University.x == input$uni) %>%
+        filter(st_geometry_type(.) %in% c('POLYGON', 'MULTIPOLYGON'))
     }
+    
+    if (!is.null(input$tribe) && input$tribe != "All Tribes") {
+      data <- data %>% filter(Tribal_Nation.x == input$tribe)
+    }
+    
+    return(data)
   })
   
   # Plots

@@ -1,0 +1,2 @@
+load("/Users/lillianwang/morrill-act/data/landgrabu-data/shapes/parcel_fast.rds")
+load("/Users/lillianwang/morrill-act/data/landgrabu-data/shapes/parcel_data_joined.rds")
