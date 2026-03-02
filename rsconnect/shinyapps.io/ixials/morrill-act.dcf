@@ -5,7 +5,7 @@ account: ixials
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 15994432
-bundleId: 11523797
+bundleId: 11652477
 url: https://ixials.shinyapps.io/morrill-act/
 version: 1
 asMultiple: FALSE

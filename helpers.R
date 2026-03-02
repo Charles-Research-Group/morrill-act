@@ -386,8 +386,8 @@ map <- function(df,
     ) %>%
     addLegend(
       position = 'bottomleft',
-      colors = c('#27408B', 'orchid'),
-      labels = c('Universities', 'Parcels'),
+      colors = c('#27408B', 'orchid', 'red'),
+      labels = c('Universities', 'Parcels', 'Tribes'),
       title = 'Legend'
     ) %>%
     addLayersControl(

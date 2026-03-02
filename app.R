@@ -9,6 +9,8 @@ library(leaflet)
 library(sf)
 library(leafgl)
 library(RColorBrewer)
+library(tidyverse)
+library(lobstr)
 
 source('helpers.R')
 
@@ -21,13 +23,12 @@ uni_list <- read_csv('data/University_List.csv', show_col_types = FALSE)
 uni_info <- read_csv('data/landgrabu-data/csvs/Universities.csv',
                      show_col_types = FALSE)
 uni_data <- uni_shapes %>%
-  mutate(Uni_Name = gsub("/", " & ", Uni_Name)) %>%
-  left_join(uni_info %>% mutate(University = gsub("/", " & ", University)),
+  mutate(Uni_Name = gsub('/', ' & ', Uni_Name)) %>%
+  mutate(Value = ifelse(Uni_Name == 'unidentified', 'Unidentified', Uni_Name)) %>%
+  left_join(uni_info %>% mutate(University = gsub('/', ' & ', University)),
             by = c('Uni_Name' = 'University')) %>%
   st_cast('POINT', warn = FALSE)
-parcel_data <- readRDS('data/preprocessed/parcel_data.rds')
-#parcel_data <- readRDS('data/preprocessed/parcel_data_aggregated.rds')
-
+parcel_data <- readRDS('data/preprocessed/parcel_data_small.rds')
 
 var_labels <- c(
   'Food Insecurity' = 'pct_change_Food_Insecurity_Rate_2018_P',
@@ -44,7 +45,7 @@ var_labels <- c(
 
 # UI layout ----
 ui <- page_sidebar(
-  sidebar = sidebar(id = "sidebar", uiOutput('page_select_input')),
+  sidebar = sidebar(id = 'sidebar', uiOutput('page_select_input')),
   tabsetPanel(
     id = 'page',
     tabPanel('Home', div(
@@ -53,12 +54,12 @@ ui <- page_sidebar(
         'The Morrill Land-Grant Acts of 1862 and 1890 were federal laws that funded
         the creation of public colleges focused on agriculture and engineering.
         The 1862 Act granted states 30,000 acres of federal land to sell or develop
-        for each of their representatives and senators in Congress. In total, nearly 
-        11 million acres, used to fund 52 land-grant universities, had been obtained 
+        for each of their representatives and senators in Congress. In total, nearly
+        11 million acres, used to fund 52 land-grant universities, had been obtained
         through the violence-backed dispossession of Indigenous tribes.'
       ),
       p(
-        'This app contains data visualizations exploring crop production, food 
+        'This app contains data visualizations exploring crop production, food
         insecurity, and climate trends in Indigenous tribes affected by the law.'
       )
     )),
@@ -126,7 +127,7 @@ server <- function(input, output, session) {
       file_path <- paste0('data/university-data/Data_Analysis_',
                           input$uni,
                           '.csv')
-      filter_data(read_csv(file_path))
+      filter_data(read_csv(file_path, show_col_types = FALSE))
     }
   })
   
@@ -135,25 +136,34 @@ server <- function(input, output, session) {
     if (input$uni == 'All 1862 Land Grant Institutions') {
       uni_data
     } else {
-      uni_names <- strsplit(input$uni, " & ")[[1]]
+      uni_names <- strsplit(input$uni, ' & ')[[1]]
       uni_data %>%
         filter(Uni_Name %in% uni_names)
     }
   })
   
+  selected_res_shapes <- reactive({
+    req(input$tribe)
+    if (input$tribe == 'All Tribes') {
+      res_shapes
+    } else {
+      res_shapes %>%
+        filter(TRIBE_NAME == input$tribe)
+    }
+  })
+  
   selected_parcel_data <- reactive({
     req(input$uni)
+    req(input$tribe)
     
-    data <- if (input$uni == 'All 1862 Land Grant Institutions') {
+    data <- if (input$uni == 'All 1862 Land Grant Institutions' &&
+                input$tribe == 'All Tribes') {
       parcel_data
     } else {
       parcel_data %>%
         filter(University.x == input$uni) %>%
+        filter(Present_Day_Tribes == input$tribe) %>%
         filter(st_geometry_type(.) %in% c('POLYGON', 'MULTIPOLYGON'))
-    }
-    
-    if (!is.null(input$tribe) && input$tribe != "All Tribes") {
-      data <- data %>% filter(Tribal_Nation.x == input$tribe)
     }
     
     return(data)
@@ -188,7 +198,7 @@ server <- function(input, output, session) {
       selected_data(),
       selected_uni_data(),
       selected_parcel_data(),
-      res_shapes,
+      selected_res_shapes(),
       input$var,
       var_labels
     )

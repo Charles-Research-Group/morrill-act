@@ -1,16 +1,13 @@
 library(sf)
 library(dplyr)
 
-parcel_data <- readRDS('data/preprocessed/parcel_data.rds')
+parcels <- readRDS("data/preprocessed/parcel_data.rds")
 
-# Just aggregate - no simplification
-parcel_data_aggregated <- parcel_data %>%
-  filter(st_geometry_type(.) %in% c('POLYGON', 'MULTIPOLYGON')) %>%
-  group_by(University.x, Tribal_Nation.x) %>%
-  summarise(
-    parcel_count = n(),
-    geometry = st_union(geometry),
-    .groups = 'drop'
-  )
+# keep only what you actually need in the app
+parcels_small <- parcels %>%
+  select(MTRSA_LG, University.x, Present_Day_Tribes, geometry) %>%  # adjust columns you need
+  st_make_valid() %>%
+  st_simplify(dTolerance = 50, preserveTopology = TRUE) %>% # tune tolerance
+  st_cast("MULTIPOLYGON", warn = FALSE)
 
-saveRDS(parcel_data_aggregated, 'data/preprocessed/parcel_data_aggregated.rds')
+saveRDS(parcels_small, "data/preprocessed/parcel_data_small.rds", compress = "xz")
