@@ -16,7 +16,6 @@ source('helpers.R')
 
 # Load data ----
 all_data <- read_csv('data/Data_Analysis_all.csv', show_col_types = FALSE)
-filter_data <- filter_data(all_data)
 res_shapes  <- readRDS('data/preprocessed/reservations.rds')
 uni_shapes  <- readRDS('data/preprocessed/universities.rds')
 uni_list <- read_csv('data/University_List.csv', show_col_types = FALSE)
@@ -29,6 +28,9 @@ uni_data <- uni_shapes %>%
             by = c('Uni_Name' = 'University')) %>%
   st_cast('POINT', warn = FALSE)
 parcel_data <- readRDS('data/preprocessed/parcel_data_small.rds')
+parcel_by_university <- readRDS("data/preprocessed/parcel_by_university.rds")
+parcel_by_tribe <- readRDS("data/preprocessed/parcel_by_tribe.rds")
+parcel_by_university_tribe <- readRDS("data/preprocessed/parcel_by_university_tribe.rds")
 
 var_labels <- c(
   'Food Insecurity' = 'pct_change_Food_Insecurity_Rate_2018_P',
@@ -153,20 +155,22 @@ server <- function(input, output, session) {
   })
   
   selected_parcel_data <- reactive({
-    req(input$uni)
-    req(input$tribe)
+    req(input$uni, input$tribe)
     
-    data <- if (input$uni == 'All 1862 Land Grant Institutions' &&
-                input$tribe == 'All Tribes') {
-      parcel_data
+    if (input$uni == "All 1862 Land Grant Institutions" &&
+        input$tribe == "All Tribes") {
+      parcel_data[0, ]
+    } else if (input$uni == "All 1862 Land Grant Institutions") {
+      parcel_by_tribe %>%
+        filter(Present_Day_Tribes == input$tribe)
+    } else if (input$tribe == "All Tribes") {
+      parcel_by_university %>%
+        filter(University.x == input$uni)
     } else {
-      parcel_data %>%
-        filter(University.x == input$uni) %>%
-        filter(Present_Day_Tribes == input$tribe) %>%
-        filter(st_geometry_type(.) %in% c('POLYGON', 'MULTIPOLYGON'))
+      parcel_by_university_tribe %>%
+        filter(University.x == input$uni,
+               Present_Day_Tribes == input$tribe)
     }
-    
-    return(data)
   })
   
   # Plots
