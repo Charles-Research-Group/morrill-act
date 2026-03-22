@@ -45,8 +45,34 @@ var_labels <- c(
   'Precipitation' = 'pct_change_precip_mean_ann_P'
 )
 
+tribes_all <- sort(unique(all_data$Tribe))
+tribes_shapes <- sort(unique(res_shapes$TRIBE_NAME))
+
+print(setdiff(tribes_all, tribes_shapes))
+print("---------------------------------")
+print(setdiff(tribes_shapes, tribes_all))
+
 # UI layout ----
 ui <- page_sidebar(
+  tags$head(tags$style(
+    HTML(
+      "
+      .selectize-dropdown .option {
+        color: black !important;
+      }
+
+      .selectize-dropdown .option:nth-child(odd), 
+      .selectize-dropdown .option:nth-child(odd):hover {
+        background-color: #ffffff !important;
+      }
+
+      .selectize-dropdown .option:nth-child(even),
+      .selectize-dropdown .option:nth-child(even):hover {
+        background-color: #e6e6e6 !important;
+      }
+      "
+    )
+  )),
   sidebar = sidebar(id = 'sidebar', uiOutput('page_select_input')),
   tabsetPanel(
     id = 'page',

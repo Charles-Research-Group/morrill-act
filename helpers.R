@@ -321,11 +321,31 @@ map <- function(df,
   
   uni_points <- uni_data %>% st_cast('POINT', warn = FALSE)
   
+  values <- tribe_data[[var]]
+  if (var == 'pct_change_temp_mean_ann_P' ||
+      var == 'pct_change_precip_mean_ann_P') {
+    normalized_var <- abs(values)
+  } else {
+    normalized_var <- values
+  }
+  
   pal <- colorNumeric(
     palette = brewer.pal(9, 'Reds'),
-    domain = tribe_data[[var]],
+    domain = normalized_var,
     na.color = 'gray',
     reverse = FALSE
+  )
+  
+  fill_pal = pal(normalized_var)
+  
+  uni_icon <- makeIcon(
+    iconUrl = "assets/uni.png",
+    iconWidth = 18,
+    iconHeight = 18,
+    iconAnchorX = 9,
+    iconAnchorY = 18,
+    popupAnchorX = 0,
+    popupAnchorY = -18,
   )
   
   legend_var <- names(var_labels)[var_labels == var]
@@ -336,11 +356,20 @@ map <- function(df,
     addTiles() %>%
     addPolygons(
       data = tribe_shapes,
-      color = 'red',
-      weight = 2,
-      fillColor = pal(tribe_data[[var]]),
+      color = 'brown',
+      weight = 3,
+      fillColor = fill_pal,
       fillOpacity = 0.8,
-      popup = paste0('Tribe: ', tribe_data[['TRIBE_NAME']], '<br>Change: ', round(tribe_data[[var]], 2), '%'),
+      popup = paste0(
+        'Tribe: ',
+        tribe_data[['TRIBE_NAME']],
+        '<br>Change: ',
+        round(tribe_data[[var]], 2),
+        '%',
+        '<br>Endowment Raised: ',
+        round(tribe_data[['Endow_Raised_Parcel']], 2),
+        '$'
+      ),
       group = 'Tribes'
     )
   
@@ -363,12 +392,9 @@ map <- function(df,
   }
   
   m %>%
-    addCircleMarkers(
+    addMarkers(
       data = uni_points,
-      radius = 4,
-      color = '#27408B',
-      fillColor = '#27408B',
-      fillOpacity = 0.8,
+      icon = uni_icon,
       popup = paste0(
         uni_data[['Uni_Name']],
         '<br>Year founded: ',
@@ -380,13 +406,13 @@ map <- function(df,
     ) %>%
     addLegend(
       pal = pal,
-      values = tribe_data[[var]],
+      values = normalized_var,
       title = legend_var,
       position = 'bottomright'
     ) %>%
     addLegend(
       position = 'bottomleft',
-      colors = c('#27408B', 'orchid', 'red'),
+      colors = c('dodgerblue', 'orchid', 'red'),
       labels = c('Universities', 'Parcels', 'Tribes'),
       title = 'Legend'
     ) %>%

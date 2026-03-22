@@ -1,65 +1,39 @@
 library(sf)
 library(dplyr)
-library(readr)
-
-# Use planar geometry ops for preprocessing
 sf_use_s2(FALSE)
 
-# Load parcel data
-parcel_data <- readRDS("data/preprocessed/parcel_data.rds")
-
-# Clean raw parcel data
-parcel_data_clean <- parcel_data %>%
-  filter(st_geometry_type(.) %in% c("POLYGON", "MULTIPOLYGON")) %>%
-  filter(!st_is_empty(.)) %>%
-  mutate(
-    University.x = trimws(University.x),
-    Present_Day_Tribes = trimws(Present_Day_Tribes)
-  ) %>%
-  filter(
-    !is.na(geometry)
-  ) %>%
-  st_make_valid() %>%
-  st_collection_extract("POLYGON") %>%
-  st_cast("MULTIPOLYGON")
-
-aggregate_and_simplify <- function(data, group_vars, tolerance_m = 1000) {
-  data %>%
-    group_by(across(all_of(group_vars))) %>%
-    summarise(do_union = TRUE, .groups = "drop") %>%
-    st_make_valid() %>%
-    st_collection_extract("POLYGON") %>%
-    st_cast("MULTIPOLYGON") %>%
-    st_transform(5070) %>%   # projected CRS in meters
-    st_simplify(dTolerance = tolerance_m, preserveTopology = TRUE) %>%
-    st_make_valid() %>%
-    st_collection_extract("POLYGON") %>%
-    st_cast("MULTIPOLYGON") %>%
-    st_transform(4326)
+# ---------- Helper ----------
+prep_polygons <- function(x) {
+  x |> st_make_valid() |> st_transform(4326)
 }
 
-# By university
-parcel_by_university <- parcel_data_clean %>%
-  filter(!is.na(University.x), University.x != "") %>%
-  aggregate_and_simplify(group_vars = c("University.x"))
+# ---------- Ensure output dir exists ----------
+dir.create("data/preprocessed",
+           showWarnings = FALSE,
+           recursive = TRUE)
 
-# By tribe
-parcel_by_tribe <- parcel_data_clean %>%
-  filter(!is.na(Present_Day_Tribes), Present_Day_Tribes != "") %>%
-  aggregate_and_simplify(group_vars = c("Present_Day_Tribes"))
+# ---------- Parcels ----------
+parcels <- st_read("data/landgrabu-data/shapes/Parcel_Polygons.shp", quiet = TRUE)
+parcels_csv <- read.csv("data/landgrabu-data/csvs/Parcels.csv", stringsAsFactors = FALSE)
+parcels$MTRSA_LG <- as.character(parcels$MTRSA_LG)
+parcels_csv$MTRSA_LG <- as.character(parcels_csv$MTRSA_LG)
+parcels_joined <- parcels |> left_join(parcels_csv, by = "MTRSA_LG") |> prep_polygons()
+saveRDS(parcels_joined,
+        "data/preprocessed/parcel_polygons.rds",
+        compress = FALSE)
 
-# By university + tribe
-parcel_by_university_tribe <- parcel_data_clean %>%
-  filter(
-    !is.na(University.x), University.x != "",
-    !is.na(Present_Day_Tribes), Present_Day_Tribes != ""
-  ) %>%
-  aggregate_and_simplify(group_vars = c("University.x", "Present_Day_Tribes"))
+# ---------- Reservations ----------
+reservations <- st_read("data/reservation-shapes/AmericanIndianReservations.shp",
+                        quiet = TRUE)
+reservations_clean <- reservations |> prep_polygons()
+saveRDS(reservations_clean,
+        "data/preprocessed/reservations.rds",
+        compress = FALSE)
 
-saveRDS(parcel_by_university, "data/preprocessed/parcel_by_university.rds")
-saveRDS(parcel_by_tribe, "data/preprocessed/parcel_by_tribe.rds")
-saveRDS(parcel_by_university_tribe, "data/preprocessed/parcel_by_university_tribe.rds")
+# ---------- Universities ----------
+universities <- st_read("data/landgrabu-data/shapes/University_Points.shp", quiet = TRUE) |> st_make_valid() |> st_transform(4326)
+saveRDS(universities,
+        "data/preprocessed/universities.rds",
+        compress = FALSE)
 
-parcel_by_university <- readRDS("data/preprocessed/parcel_by_university.rds")
-parcel_by_tribe <- readRDS("data/preprocessed/parcel_by_tribe.rds")
-parcel_by_university_tribe <- readRDS("data/preprocessed/parcel_by_university_tribe.rds")
+message("✅ Spatial preprocessing complete (RDS)")
