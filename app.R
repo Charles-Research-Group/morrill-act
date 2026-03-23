@@ -1,15 +1,14 @@
 library(shiny)
 library(bslib)
 library(ggplot2)
-library(dplyr)
 library(readr)
+library(dplyr)
 library(tidyr)
 library(plotly)
 library(leaflet)
 library(sf)
 library(leafgl)
 library(RColorBrewer)
-library(tidyverse)
 library(lobstr)
 
 source('helpers.R')
@@ -28,9 +27,6 @@ uni_data <- uni_shapes %>%
             by = c('Uni_Name' = 'University')) %>%
   st_cast('POINT', warn = FALSE)
 parcel_data <- readRDS('data/preprocessed/parcel_data_small.rds')
-parcel_by_university <- readRDS("data/preprocessed/parcel_by_university.rds")
-parcel_by_tribe <- readRDS("data/preprocessed/parcel_by_tribe.rds")
-parcel_by_university_tribe <- readRDS("data/preprocessed/parcel_by_university_tribe.rds")
 
 var_labels <- c(
   'Food Insecurity' = 'pct_change_Food_Insecurity_Rate_2018_P',
@@ -45,13 +41,6 @@ var_labels <- c(
   'Precipitation' = 'pct_change_precip_mean_ann_P'
 )
 
-tribes_all <- sort(unique(all_data$Tribe))
-tribes_shapes <- sort(unique(res_shapes$TRIBE_NAME))
-
-print(setdiff(tribes_all, tribes_shapes))
-print("---------------------------------")
-print(setdiff(tribes_shapes, tribes_all))
-
 # UI layout ----
 ui <- page_sidebar(
   tags$head(tags$style(
@@ -61,7 +50,7 @@ ui <- page_sidebar(
         color: black !important;
       }
 
-      .selectize-dropdown .option:nth-child(odd), 
+      .selectize-dropdown .option:nth-child(odd),
       .selectize-dropdown .option:nth-child(odd):hover {
         background-color: #ffffff !important;
       }
@@ -187,13 +176,13 @@ server <- function(input, output, session) {
         input$tribe == "All Tribes") {
       parcel_data[0, ]
     } else if (input$uni == "All 1862 Land Grant Institutions") {
-      parcel_by_tribe %>%
+      parcel_by_tribe <- readRDS("data/preprocessed/parcel_by_tribe.rds") %>%
         filter(Present_Day_Tribes == input$tribe)
     } else if (input$tribe == "All Tribes") {
-      parcel_by_university %>%
+      parcel_by_university <- readRDS("data/preprocessed/parcel_by_university.rds") %>%
         filter(University.x == input$uni)
     } else {
-      parcel_by_university_tribe %>%
+      parcel_by_university_tribe <- readRDS("data/preprocessed/parcel_by_university_tribe.rds") %>%
         filter(University.x == input$uni,
                Present_Day_Tribes == input$tribe)
     }
