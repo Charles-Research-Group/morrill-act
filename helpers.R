@@ -138,6 +138,10 @@ prod_sec_scatterplot <- function(df) {
       range = c(3, 10),
       breaks = c(1e4, 1e5, 5e5, 1e6, 2e6),
       labels = c('10,000', '100,000', '500,000', '1,000,000', '2,000,000')
+    ) + 
+    coord_cartesian(
+      xlim = range(df$pct_change_nccpi3all_P, na.rm = TRUE) * 1.2,
+      ylim = range(df$pct_change_Food_Insecurity_Rate_2018_P, na.rm = TRUE) * 1.2
     )
   
   ggplotly(p, tooltip = 'text')
@@ -189,6 +193,10 @@ temp_precip_scatterplot <- function(df) {
       range = c(3, 10),
       breaks = c(1e4, 1e5, 5e5, 1e6, 2e6),
       labels = c('10,000', '100,000', '500,000', '1,000,000', '2,000,000')
+    ) + 
+    coord_cartesian(
+      xlim = range(df$pct_change_precip_mean_ann_P, na.rm = TRUE) * 1.2,
+      ylim = range(df$pct_change_temp_mean_ann_P, na.rm = TRUE) * 1.2
     )
   
   ggplotly(p, tooltip = 'text')
