@@ -215,16 +215,12 @@ plot_temp_precip_for_tribe_gg <- function(df, tribe_name) {
   temp_data <- data.frame(
     Month = rep(months, 2),
     Mean = c(
-      sapply(months, function(i)
-        tribe_data[[paste0('temp_mean_', i, '_P')]]),
-      sapply(months, function(i)
-        tribe_data[[paste0('temp_mean_', i, '_H')]])
+      sapply(months, function(i) tribe_data[[paste0('temp_mean_', i, '_P')]]),
+      sapply(months, function(i) tribe_data[[paste0('temp_mean_', i, '_H')]])
     ),
     StdDev = c(
-      sapply(months, function(i)
-        tribe_data[[paste0('temp_std_', i, '_P')]]),
-      sapply(months, function(i)
-        tribe_data[[paste0('temp_std_', i, '_H')]])
+      sapply(months, function(i) tribe_data[[paste0('temp_std_', i, '_P')]]),
+      sapply(months, function(i) tribe_data[[paste0('temp_std_', i, '_H')]])
     ),
     DataType = rep(c('Present', 'Historic'), each = 12)
   )
@@ -232,16 +228,12 @@ plot_temp_precip_for_tribe_gg <- function(df, tribe_name) {
   precip_data <- data.frame(
     Month = rep(months, 2),
     Mean = c(
-      sapply(months, function(i)
-        tribe_data[[paste0('precip_mean_', i, '_P')]]),
-      sapply(months, function(i)
-        tribe_data[[paste0('precip_mean_', i, '_H')]])
+      sapply(months, function(i) tribe_data[[paste0('precip_mean_', i, '_P')]]),
+      sapply(months, function(i) tribe_data[[paste0('precip_mean_', i, '_H')]])
     ),
     StdDev = c(
-      sapply(months, function(i)
-        tribe_data[[paste0('precip_std_', i, '_P')]]),
-      sapply(months, function(i)
-        tribe_data[[paste0('precip_std_', i, '_H')]])
+      sapply(months, function(i) tribe_data[[paste0('precip_std_', i, '_P')]]),
+      sapply(months, function(i) tribe_data[[paste0('precip_std_', i, '_H')]])
     ),
     DataType = rep(c('Present', 'Historic'), each = 12)
   )
@@ -251,18 +243,10 @@ plot_temp_precip_for_tribe_gg <- function(df, tribe_name) {
       text = element_text(family = 'arial'),
       axis.title = element_text(size = 10, face = 'bold'),
       axis.text = element_text(size = 10),
-      legend.title = element_blank(),
-      legend.position = 'top',
+      legend.title = element_blank()
     )
   
-  # Temperature plot
-  temp_plot <- ggplot(temp_data,
-                      aes(
-                        x = Month,
-                        y = Mean,
-                        color = DataType,
-                        group = DataType
-                      )) +
+  temp_plot <- ggplot(temp_data, aes(x = Month, y = Mean, color = DataType, group = DataType)) +
     geom_line(aes(text = paste0('Mean: ', round(Mean, 2), '°C')), size = 1) +
     geom_point(aes(text = paste0('Mean: ', round(Mean, 2), '°C')), size = 3) +
     geom_errorbar(aes(ymin = Mean - StdDev, ymax = Mean + StdDev), width = 0.2) +
@@ -272,20 +256,13 @@ plot_temp_precip_for_tribe_gg <- function(df, tribe_name) {
   
   temp_plotly <- ggplotly(temp_plot, tooltip = 'text')
   
-  # Precipitation plot
-  precip_plot <- ggplot(precip_data,
-                        aes(
-                          x = Month,
-                          y = Mean,
-                          color = DataType,
-                          group = DataType
-                        )) +
+  precip_plot <- ggplot(precip_data, aes(x = Month, y = Mean, color = DataType, group = DataType)) +
     geom_line(aes(text = paste0('Mean: ', round(Mean, 2), 'mm')), size = 1) +
     geom_point(aes(text = paste0('Mean: ', round(Mean, 2), 'mm')), size = 3) +
     geom_errorbar(aes(ymin = Mean - StdDev, ymax = Mean + StdDev), width = 0.2) +
     scale_color_manual(values = c('Present' = 'blue', 'Historic' = 'red')) +
     labs(y = 'Precipitation (mm)', x = 'Month') +
-    scale_x_continuous(breaks = seq(2, 12, by = 2)) +  # Set x-axis breaks every 2 months
+    scale_x_continuous(breaks = seq(2, 12, by = 2)) +
     custom_theme
   
   precip_plotly <- ggplotly(precip_plot, tooltip = 'text')
@@ -293,7 +270,6 @@ plot_temp_precip_for_tribe_gg <- function(df, tribe_name) {
   for (i in seq_along(precip_plotly$x$data)) {
     precip_plotly$x$data[[i]]$showlegend <- FALSE
   }
-  
   
   combined_plt <- subplot(
     temp_plotly,
@@ -305,12 +281,26 @@ plot_temp_precip_for_tribe_gg <- function(df, tribe_name) {
   ) %>%
     layout(
       title = list(
-        text = tribe_name,
+        text = paste(strwrap(tribe_name, width = 40), collapse = '<br>'),
         x = 0.5,
         xanchor = 'center',
-        font = list(size = 18, family = 'arial')
+        font = list(size = 16, family = 'arial')
       ),
-      margin = list(t = 80)
+      legend = list(
+        title = list(text = ''),
+        orientation = 'h',
+        x = 0.5,
+        xanchor = 'center',
+        y = -0.30,
+        yanchor = 'top'
+      ),
+      margin = list(t = 80, b = 60),
+
+      modebar = list(
+        remove = c('zoom2d', 'pan2d', 'select2d', 'lasso2d', 'zoomIn2d',
+                   'zoomOut2d', 'autoScale2d', 'hoverClosestCartesian',
+                   'hoverCompareCartesian', 'toggleSpikelines')
+      )
     )
   
   combined_plt

@@ -62,7 +62,11 @@ ui <- page_sidebar(
       "
     )
   )),
-  sidebar = sidebar(id = 'sidebar', uiOutput('page_select_input')),
+  sidebar = sidebar(
+    id = 'sidebar',
+    open = list(desktop = 'open', mobile = 'closed'),
+    uiOutput('page_select_input')
+  ),
   tabsetPanel(
     id = 'page',
     tabPanel('Home', div(
@@ -82,15 +86,38 @@ ui <- page_sidebar(
     )),
     tabPanel(
       'Violin plots',
-      plotlyOutput('violin_plot', width = '60vh', height = '80vh'),
-      tableOutput('violin_plot_table')
+      tags$style(
+        "
+    @media (max-width: 768px) {
+      #violin-wrap { width: 100% !important; }
+    }
+  "
+      ),
+      div(
+        id = 'violin-wrap',
+        style = 'width: 50%; padding: 10px;',
+        plotlyOutput('violin_plot', width = '100%', height = '60vh')
+      ),
+      div(style = 'overflow-x: auto;', tableOutput('violin_plot_table'))
     ),
     tabPanel(
       'Scatterplots',
-      plotlyOutput('prod_sec_scatterplot', height = '40vh'),
-      plotlyOutput('temp_precip_scatterplot', height = '40vh')
+      plotlyOutput('prod_sec_scatterplot', width = '100%', height = '40vh'),
+      plotlyOutput(
+        'temp_precip_scatterplot',
+        width = '100%',
+        height = '40vh'
+      )
     ),
-    tabPanel('By tribe', plotlyOutput('plot_temp_precip_for_tribe_gg')),
+    tabPanel(
+      'By tribe',
+      plotlyOutput(
+        'plot_temp_precip_for_tribe_gg',
+        width = '100%',
+        height = '80vh'
+      )
+      
+    ),
     tabPanel('Map', div(
       style = 'padding: 20px;',
       p(
@@ -98,7 +125,7 @@ ui <- page_sidebar(
         a('landgrabu.org', href = 'https://landgrabu.org', target = '_blank'),
         'provides this option.'
       ),
-      leafletOutput('map', width = '120vh', height = '80vh')
+      leafletOutput('map', width = '100%', height = '65vh')
     ))
   )
 )
