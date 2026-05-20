@@ -41,11 +41,15 @@ var_labels <- c(
   'Precipitation' = 'pct_change_precip_mean_ann_P'
 )
 
+print(names(readRDS(
+  "data/preprocessed/parcel_by_tribe.rds"
+)))
+
 # UI layout ----
 ui <- page_sidebar(
   tags$head(tags$style(
     HTML(
-      "
+      '
       .selectize-dropdown .option {
         color: black !important;
       }
@@ -59,7 +63,7 @@ ui <- page_sidebar(
       .selectize-dropdown .option:nth-child(even):hover {
         background-color: #e6e6e6 !important;
       }
-      "
+      '
     )
   )),
   sidebar = sidebar(
@@ -176,14 +180,25 @@ server <- function(input, output, session) {
   })
   
   selected_uni_data <- reactive({
-    req(input$uni)
-    if (input$uni == 'All 1862 Land Grant Institutions') {
-      uni_data
-    } else {
-      uni_names <- strsplit(input$uni, ' & ')[[1]]
-      uni_data %>%
+    req(input$uni, input$tribe)
+    filtered_uni <- uni_data
+    
+    if (input$uni != "All 1862 Land Grant Institutions") {
+      uni_names <- strsplit(input$uni, " & ")[[1]]
+      filtered_uni <- filtered_uni %>%
         filter(Uni_Name %in% uni_names)
     }
+    
+    if (input$tribe != "All Tribes") {
+      parcel_by_university_tribe <- readRDS("data/preprocessed/parcel_by_university_tribe.rds")
+      valid_unis <- parcel_by_university_tribe %>%
+        filter(Present_Day_Tribes == input$tribe) %>%
+        pull(University.x) %>%
+        unique()
+      filtered_uni <- filtered_uni %>%
+        filter(Uni_Name %in% valid_unis)
+    }
+    filtered_uni
   })
   
   selected_res_shapes <- reactive({
@@ -203,7 +218,7 @@ server <- function(input, output, session) {
         input$tribe == "All Tribes") {
       parcel_data[0, ]
     } else if (input$uni == "All 1862 Land Grant Institutions") {
-      parcel_by_tribe <- readRDS("data/preprocessed/parcel_by_tribe.rds") %>%
+      parcel_by_university_tribe <- readRDS("data/preprocessed/parcel_by_university_tribe.rds") %>%
         filter(Present_Day_Tribes == input$tribe)
     } else if (input$tribe == "All Tribes") {
       parcel_by_university <- readRDS("data/preprocessed/parcel_by_university.rds") %>%
