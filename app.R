@@ -214,20 +214,25 @@ server <- function(input, output, session) {
   selected_parcel_data <- reactive({
     req(input$uni, input$tribe)
     
-    if (input$uni == "All 1862 Land Grant Institutions" &&
-        input$tribe == "All Tribes") {
+    result <- if (input$uni == "All 1862 Land Grant Institutions" &&
+                  input$tribe == "All Tribes") {
       parcel_data[0, ]
     } else if (input$uni == "All 1862 Land Grant Institutions") {
-      parcel_by_university_tribe <- readRDS("data/preprocessed/parcel_by_university_tribe.rds") %>%
+      readRDS("data/preprocessed/parcel_by_university_tribe.rds") %>%
+        mutate(University.x = gsub('/', ' & ', University.x)) %>%
         filter(Present_Day_Tribes == input$tribe)
     } else if (input$tribe == "All Tribes") {
-      parcel_by_university <- readRDS("data/preprocessed/parcel_by_university.rds") %>%
+      readRDS("data/preprocessed/parcel_by_university.rds") %>%
+        mutate(University.x = gsub('/', ' & ', University.x)) %>%
         filter(University.x == input$uni)
     } else {
-      parcel_by_university_tribe <- readRDS("data/preprocessed/parcel_by_university_tribe.rds") %>%
+      readRDS("data/preprocessed/parcel_by_university_tribe.rds") %>%
+        mutate(University.x = gsub('/', ' & ', University.x)) %>%
         filter(University.x == input$uni,
                Present_Day_Tribes == input$tribe)
     }
+    
+    st_transform(result, 4326)
   })
   
   # Plots
