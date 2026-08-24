@@ -85,7 +85,7 @@ parcel_data_small <- parcel_data_original |>
 saveRDS(
   parcel_data_small,
   "data/preprocessed/parcel_data_small.rds",
-  compress = FALSE
+  compress = "xz"
 )
 
 cat(
@@ -192,7 +192,7 @@ parcel_by_university <- aggregate_data_4326 |>
 saveRDS(
   parcel_by_university,
   "data/preprocessed/parcel_by_university.rds",
-  compress = FALSE
+  compress = "xz"
 )
 
 cat(
@@ -221,7 +221,7 @@ parcel_by_tribe <- aggregate_data_4326 |>
 saveRDS(
   parcel_by_tribe,
   "data/preprocessed/parcel_by_tribe.rds",
-  compress = FALSE
+  compress = "xz"
 )
 
 cat(
@@ -252,7 +252,7 @@ parcel_by_university_tribe <- aggregate_data_4326 |>
 saveRDS(
   parcel_by_university_tribe,
   "data/preprocessed/parcel_by_university_tribe.rds",
-  compress = FALSE
+  compress = "xz"
 )
 
 cat(
@@ -278,7 +278,7 @@ university_list <- aggregate_data_4326 |>
 saveRDS(
   university_list,
   "data/preprocessed/university_list.rds",
-  compress = FALSE
+  compress = "xz"
 )
 
 cat(
@@ -304,7 +304,7 @@ tribe_list <- aggregate_data_4326 |>
 saveRDS(
   tribe_list,
   "data/preprocessed/tribe_list.rds",
-  compress = FALSE
+  compress = "xz"
 )
 
 cat(
