@@ -1,3 +1,7 @@
+# ============================================================
+# FILTER DATA
+# ============================================================
+
 filter_data <- function(data) {
   data_change <- data
   
@@ -14,7 +18,7 @@ filter_data <- function(data) {
         '_P$', '_H', cur_column()
       ))) /
         get(gsub('_P$', '_H', cur_column())) * 100,
-      #Convert to percentage change
+      # Convert to percentage change
       .names = 'pct_change_{.col}'
     )) %>%
     ungroup()
@@ -26,6 +30,10 @@ filter_data <- function(data) {
            Acres,
            Endow_Raised_Parcel)
 }
+
+# ============================================================
+# VIOLIN PLOTS
+# ============================================================
 
 violin_plot_summary <- function(data, var_labels) {
   data %>%
@@ -91,6 +99,10 @@ violin_plot <- function(df, var, var_labels, title = NULL) {
   
   ggplotly(p, tooltip = 'text') %>% style(hoverinfo = 'skip', traces = 0)
 }
+
+# ============================================================
+# SCATTERPLOTS
+# ============================================================
 
 prod_sec_scatterplot <- function(df) {
   p <- ggplot(
@@ -203,6 +215,10 @@ temp_precip_scatterplot <- function(df) {
   
 }
 
+# ============================================================
+# LINE PLOTS
+# ============================================================
+
 plot_temp_precip_for_tribe_gg <- function(df, tribe_name) {
   tribe_data <- df %>% filter(Tribe == tribe_name)
   if (nrow(tribe_data) == 0) {
@@ -306,6 +322,10 @@ plot_temp_precip_for_tribe_gg <- function(df, tribe_name) {
   combined_plt
 }
 
+# ============================================================
+# MAP
+# ============================================================
+
 map <- function(df,
                 uni_data,
                 parcel_data,
@@ -348,7 +368,7 @@ map <- function(df,
   
   legend_var <- names(var_labels)[var_labels == var]
   
-  show_parcels <- nrow(parcel_data) > 0 && nrow(parcel_data) < 10000
+  show_parcels <- nrow(parcel_data) > 0 && nrow(parcel_data) < 90000
   
   m <- leaflet() %>%
     addTiles() %>%

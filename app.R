@@ -7,13 +7,13 @@ library(tidyr)
 library(plotly)
 library(leaflet)
 library(sf)
-library(leafgl)
 library(RColorBrewer)
-library(lobstr)
 
 source('helpers.R')
 
-# Load data ----
+# ============================================================
+# LOAD DATA
+# ============================================================
 all_data <- read_csv('data/Data_Analysis_all.csv', show_col_types = FALSE)
 res_shapes  <- readRDS('data/preprocessed/reservations.rds')
 uni_shapes  <- readRDS('data/preprocessed/universities.rds')
@@ -26,7 +26,16 @@ uni_data <- uni_shapes %>%
   left_join(uni_info %>% mutate(University = gsub('/', ' & ', University)),
             by = c('Uni_Name' = 'University')) %>%
   st_cast('POINT', warn = FALSE)
-parcel_data <- readRDS('data/preprocessed/parcel_data_small.rds')
+
+parcel_by_university_tribe <- readRDS(
+  "data/preprocessed/parcel_by_university_tribe_small.rds"
+) %>%
+  mutate(University.x = gsub('/', ' & ', University.x))
+
+parcel_by_university <- readRDS(
+  "data/preprocessed/parcel_by_university_small.rds"
+) %>%
+  mutate(University.x = gsub('/', ' & ', University.x))
 
 var_labels <- c(
   'Food Insecurity' = 'pct_change_Food_Insecurity_Rate_2018_P',
@@ -41,11 +50,9 @@ var_labels <- c(
   'Precipitation' = 'pct_change_precip_mean_ann_P'
 )
 
-print(names(readRDS(
-  "data/preprocessed/parcel_by_tribe.rds"
-)))
-
-# UI layout ----
+# ============================================================
+# UI LAYOUT
+# ============================================================
 ui <- page_sidebar(
   tags$head(tags$style(
     HTML(
@@ -134,7 +141,9 @@ ui <- page_sidebar(
   )
 )
 
-# Define server logic ----
+# ============================================================
+# SERVER LOGIC
+# ============================================================
 server <- function(input, output, session) {
   output$page_select_input <- renderUI({
     switch(
@@ -190,14 +199,17 @@ server <- function(input, output, session) {
     }
     
     if (input$tribe != "All Tribes") {
-      parcel_by_university_tribe <- readRDS("data/preprocessed/parcel_by_university_tribe.rds")
       valid_unis <- parcel_by_university_tribe %>%
         filter(Present_Day_Tribes == input$tribe) %>%
         pull(University.x) %>%
-        unique()
+        unique() %>%
+        strsplit(" & ") %>%
+        unlist()
+      
       filtered_uni <- filtered_uni %>%
         filter(Uni_Name %in% valid_unis)
     }
+    
     filtered_uni
   })
   
@@ -216,17 +228,17 @@ server <- function(input, output, session) {
     
     result <- if (input$uni == "All 1862 Land Grant Institutions" &&
                   input$tribe == "All Tribes") {
-      parcel_data[0, ]
+      st_sf(geometry = st_sfc(), crs = 4326)
     } else if (input$uni == "All 1862 Land Grant Institutions") {
-      readRDS("data/preprocessed/parcel_by_university_tribe.rds") %>%
+      parcel_by_university_tribe %>%
         mutate(University.x = gsub('/', ' & ', University.x)) %>%
         filter(Present_Day_Tribes == input$tribe)
     } else if (input$tribe == "All Tribes") {
-      readRDS("data/preprocessed/parcel_by_university.rds") %>%
+      parcel_by_university %>%
         mutate(University.x = gsub('/', ' & ', University.x)) %>%
         filter(University.x == input$uni)
     } else {
-      readRDS("data/preprocessed/parcel_by_university_tribe.rds") %>%
+      parcel_by_university_tribe %>%
         mutate(University.x = gsub('/', ' & ', University.x)) %>%
         filter(University.x == input$uni,
                Present_Day_Tribes == input$tribe)
@@ -235,7 +247,9 @@ server <- function(input, output, session) {
     st_transform(result, 4326)
   })
   
-  # Plots
+  # ============================================================
+  # PLOTS
+  # ============================================================
   output$violin_plot <- renderPlotly({
     req(input$var)
     violin_plot(selected_data(), input$var)
@@ -271,5 +285,7 @@ server <- function(input, output, session) {
   })
 }
 
-# Run the app ----
+# ============================================================
+# RUN APP
+# ============================================================
 shinyApp(ui = ui, server = server)
