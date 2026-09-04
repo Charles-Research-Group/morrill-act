@@ -330,21 +330,31 @@ map <- function(df,
                 uni_data,
                 parcel_data,
                 res_shapes,
+                ok_shapes,
                 var,
                 var_labels) {
   tribes <- df$Tribe
   tribe_shapes <- res_shapes %>% filter(TRIBE_NAME %in% tribes)
+  ok_tribe_shapes <- ok_shapes %>% filter(TRIBE_NAME %in% tribes)
+  
   tribe_data <- tribe_shapes %>%
+    left_join(df, by = c('TRIBE_NAME' = 'Tribe'))
+  ok_tribe_data <- ok_tribe_shapes %>%
     left_join(df, by = c('TRIBE_NAME' = 'Tribe'))
   
   uni_points <- uni_data %>% st_cast('POINT', warn = FALSE)
   
-  values <- tribe_data[[var]]
+  all_values <- c(
+    tribe_data[[var]],
+    ok_tribe_data[[var]]
+  )
+  
+  
   if (var == 'pct_change_temp_mean_ann_P' ||
       var == 'pct_change_precip_mean_ann_P') {
-    normalized_var <- abs(values)
+    normalized_var <- abs(all_values)
   } else {
-    normalized_var <- values
+    normalized_var <- all_values
   }
   
   pal <- colorNumeric(
@@ -353,8 +363,6 @@ map <- function(df,
     na.color = 'gray',
     reverse = FALSE
   )
-  
-  fill_pal = pal(normalized_var)
   
   uni_icon <- makeIcon(
     iconUrl = "assets/uni.png",
@@ -373,10 +381,10 @@ map <- function(df,
   m <- leaflet() %>%
     addTiles() %>%
     addPolygons(
-      data = tribe_shapes,
+      data = tribe_data,
       color = 'brown',
       weight = 3,
-      fillColor = fill_pal,
+      fillColor = pal(tribe_data[[var]]),
       fillOpacity = 0.8,
       popup = paste0(
         'Tribe: ',
@@ -386,6 +394,24 @@ map <- function(df,
         '%',
         '<br>Endowment Raised: ',
         round(tribe_data[['Endow_Raised_Parcel']], 2),
+        '$'
+      ),
+      group = 'Tribes'
+    ) %>%
+    addPolygons(
+      data = ok_tribe_data,
+      color = 'brown',
+      weight = 3,
+      fillColor = pal(ok_tribe_data[[var]]),
+      fillOpacity = 0.8,
+      popup = paste0(
+        'Tribe: ',
+        ok_tribe_data[['TRIBE_NAME']],
+        '<br>Change: ',
+        round(ok_tribe_data[[var]], 2),
+        '%',
+        '<br>Endowment Raised: ',
+        round(ok_tribe_data[['Endow_Raised_Parcel']], 2),
         '$'
       ),
       group = 'Tribes'

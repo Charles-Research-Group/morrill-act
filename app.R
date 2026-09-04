@@ -16,6 +16,7 @@ source('helpers.R')
 # ============================================================
 all_data <- read_csv('data/Data_Analysis_all.csv', show_col_types = FALSE)
 res_shapes  <- readRDS('data/preprocessed/reservations.rds')
+ok_shapes <- readRDS('data/preprocessed/ok_reservations.rds')
 uni_shapes  <- readRDS('data/preprocessed/universities.rds')
 uni_list <- read_csv('data/University_List.csv', show_col_types = FALSE)
 uni_info <- read_csv('data/landgrabu-data/csvs/Universities.csv',
@@ -28,12 +29,12 @@ uni_data <- uni_shapes %>%
   st_cast('POINT', warn = FALSE)
 
 parcel_by_university_tribe <- readRDS(
-  "data/preprocessed/parcel_by_university_tribe_small.rds"
+  'data/preprocessed/parcel_by_university_tribe_small.rds'
 ) %>%
   mutate(University.x = gsub('/', ' & ', University.x))
 
 parcel_by_university <- readRDS(
-  "data/preprocessed/parcel_by_university_small.rds"
+  'data/preprocessed/parcel_by_university_small.rds'
 ) %>%
   mutate(University.x = gsub('/', ' & ', University.x))
 
@@ -98,11 +99,11 @@ ui <- page_sidebar(
     tabPanel(
       'Violin plots',
       tags$style(
-        "
+        '
     @media (max-width: 768px) {
       #violin-wrap { width: 100% !important; }
     }
-  "
+  '
       ),
       div(
         id = 'violin-wrap',
@@ -192,18 +193,18 @@ server <- function(input, output, session) {
     req(input$uni, input$tribe)
     filtered_uni <- uni_data
     
-    if (input$uni != "All 1862 Land Grant Institutions") {
-      uni_names <- strsplit(input$uni, " & ")[[1]]
+    if (input$uni != 'All 1862 Land Grant Institutions') {
+      uni_names <- strsplit(input$uni, ' & ')[[1]]
       filtered_uni <- filtered_uni %>%
         filter(Uni_Name %in% uni_names)
     }
     
-    if (input$tribe != "All Tribes") {
+    if (input$tribe != 'All Tribes') {
       valid_unis <- parcel_by_university_tribe %>%
         filter(Present_Day_Tribes == input$tribe) %>%
         pull(University.x) %>%
         unique() %>%
-        strsplit(" & ") %>%
+        strsplit(' & ') %>%
         unlist()
       
       filtered_uni <- filtered_uni %>%
@@ -215,6 +216,7 @@ server <- function(input, output, session) {
   
   selected_res_shapes <- reactive({
     req(input$tribe)
+    
     if (input$tribe == 'All Tribes') {
       res_shapes
     } else {
@@ -223,17 +225,28 @@ server <- function(input, output, session) {
     }
   })
   
+  selected_ok_shapes <- reactive({
+    req(input$tribe)
+    
+    if (input$tribe == 'All Tribes') {
+      ok_shapes
+    } else {
+      ok_shapes %>%
+        filter(TRIBE_NAME == input$tribe)
+    }
+  })
+  
   selected_parcel_data <- reactive({
     req(input$uni, input$tribe)
     
-    result <- if (input$uni == "All 1862 Land Grant Institutions" &&
-                  input$tribe == "All Tribes") {
+    result <- if (input$uni == 'All 1862 Land Grant Institutions' &&
+                  input$tribe == 'All Tribes') {
       st_sf(geometry = st_sfc(), crs = 4326)
-    } else if (input$uni == "All 1862 Land Grant Institutions") {
+    } else if (input$uni == 'All 1862 Land Grant Institutions') {
       parcel_by_university_tribe %>%
         mutate(University.x = gsub('/', ' & ', University.x)) %>%
         filter(Present_Day_Tribes == input$tribe)
-    } else if (input$tribe == "All Tribes") {
+    } else if (input$tribe == 'All Tribes') {
       parcel_by_university %>%
         mutate(University.x = gsub('/', ' & ', University.x)) %>%
         filter(University.x == input$uni)
@@ -279,6 +292,7 @@ server <- function(input, output, session) {
       selected_uni_data(),
       selected_parcel_data(),
       selected_res_shapes(),
+      selected_ok_shapes(),
       input$var,
       var_labels
     )
