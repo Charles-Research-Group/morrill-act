@@ -349,20 +349,16 @@ map <- function(df,
     ok_tribe_data[[var]]
   )
   
-  
-  if (var == 'pct_change_temp_mean_ann_P' ||
-      var == 'pct_change_precip_mean_ann_P') {
-    normalized_var <- abs(all_values)
-  } else {
-    normalized_var <- all_values
-  }
+  max_abs <- quantile(abs(all_values), 0.95, na.rm = TRUE)
   
   pal <- colorNumeric(
-    palette = brewer.pal(9, 'Reds'),
-    domain = normalized_var,
-    na.color = 'gray',
-    reverse = FALSE
+    palette = rev(brewer.pal(11, 'RdYlBu')),
+    domain = c(-max_abs, max_abs),
+    na.color = 'gray'
   )
+  
+  legend_values <- c(-max_abs, 0, max_abs)
+  legend_var <- paste0(names(var_labels)[var_labels == var], ' (% change)')
   
   uni_icon <- makeIcon(
     iconUrl = "assets/uni.png",
@@ -374,8 +370,6 @@ map <- function(df,
     popupAnchorY = -18,
   )
   
-  legend_var <- names(var_labels)[var_labels == var]
-  
   show_parcels <- nrow(parcel_data) > 0 && nrow(parcel_data) < 90000
   
   m <- leaflet() %>%
@@ -384,7 +378,9 @@ map <- function(df,
       data = tribe_data,
       color = 'brown',
       weight = 3,
-      fillColor = pal(tribe_data[[var]]),
+      fillColor = pal(
+        pmax(pmin(tribe_data[[var]], max_abs), -max_abs)
+      ),
       fillOpacity = 0.8,
       popup = paste0(
         'Tribe: ',
@@ -402,7 +398,9 @@ map <- function(df,
       data = ok_tribe_data,
       color = 'brown',
       weight = 3,
-      fillColor = pal(ok_tribe_data[[var]]),
+      fillColor = pal(
+        pmax(pmin(ok_tribe_data[[var]], max_abs), -max_abs)
+      ),
       fillOpacity = 0.8,
       popup = paste0(
         'Tribe: ',
@@ -449,16 +447,16 @@ map <- function(df,
       group = 'Universities'
     ) %>%
     addLegend(
+      position = 'bottomright',
       pal = pal,
-      values = normalized_var,
-      title = legend_var,
-      position = 'bottomright'
+      values = pmax(pmin(all_values, max_abs), -max_abs),
+      title = legend_var
     ) %>%
     addLegend(
       position = 'bottomleft',
       colors = c('dodgerblue', 'orchid', 'red'),
       labels = c('Universities', 'Parcels', 'Tribes'),
-      title = 'Legend'
+      title = 'Legend',
     ) %>%
     addLayersControl(
       overlayGroups = c('Universities', 'Tribes', 'Parcels'),
