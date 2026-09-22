@@ -84,7 +84,7 @@ violin_plot <- function(df, var, var_labels, title = NULL) {
       size = 3
     ) +
     theme_minimal(base_size = 10) +
-    labs(title = title, y = '% change') +
+    labs(title = title, y = '% Change') +
     theme(
       text = element_text(family = 'arial'),
       axis.text.x = element_blank(),
@@ -227,8 +227,7 @@ tribe_summary <- function(df, tribe_name, var_labels) {
     Variable = names(var_labels),
     Present = NA,
     Historic = NA,
-    Percent_Change = NA,
-    Note = ''
+    Percent_Change = NA
   )
   
   for (i in seq_along(var_labels)) {
@@ -255,19 +254,10 @@ tribe_summary <- function(df, tribe_name, var_labels) {
           (result$Present[i] - result$Historic[i]) /
           result$Historic[i] * 100
       }
-    } else if (!has_present && !has_historic) {
-      result$Note[i] <-
-        'Present and historical values unavailable for this tribe'
-    } else if (!has_present) {
-      result$Note[i] <-
-        'Present value unavailable for this tribe'
-    } else if (!has_historic) {
-      result$Note[i] <-
-        'Historical value unavailable for this tribe'
     }
   }
   
-  names(result)[names(result) == 'Percent_Change'] <- '% change'
+  names(result)[names(result) == 'Percent_Change'] <- '% Change'
   
   result
 }
@@ -441,7 +431,7 @@ map <- function(df,
   )
   
   legend_values <- c(-max_abs, 0, max_abs)
-  legend_var <- paste0(names(var_labels)[var_labels == var], ' (% change)')
+  legend_var <- paste0(names(var_labels)[var_labels == var], ' (% Change)')
   
   uni_icon <- makeIcon(
     iconUrl = 'assets/uni.png',

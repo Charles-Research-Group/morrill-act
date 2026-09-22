@@ -28,14 +28,10 @@ uni_data <- uni_shapes %>%
             by = c('Uni_Name' = 'University')) %>%
   st_cast('POINT', warn = FALSE)
 
-parcel_by_university_tribe <- readRDS(
-  'data/preprocessed/parcel_by_university_tribe_small.rds'
-) %>%
+parcel_by_university_tribe <- readRDS('data/preprocessed/parcel_by_university_tribe_small.rds') %>%
   mutate(University.x = gsub('/', ' & ', University.x))
 
-parcel_by_university <- readRDS(
-  'data/preprocessed/parcel_by_university_small.rds'
-) %>%
+parcel_by_university <- readRDS('data/preprocessed/parcel_by_university_small.rds') %>%
   mutate(University.x = gsub('/', ' & ', University.x))
 
 var_labels <- c(
@@ -52,18 +48,18 @@ var_labels <- c(
 )
 
 # cat('=== Oklahoma tribes missing from Data_Analysis_all.csv ===\n')
-# 
+#
 # ok_tribes <- ok_shapes %>%
 #   st_drop_geometry() %>%
 #   pull(TRIBE_NAME) %>%
 #   unique()
-# 
+#
 # csv_tribes <- all_data %>%
 #   pull(Tribe) %>%
 #   unique()
-# 
+#
 # print(setdiff(ok_tribes, csv_tribes))
-# 
+#
 # cat('===============================================\n')
 
 # ============================================================
@@ -136,23 +132,29 @@ ui <- page_sidebar(
         height = '40vh'
       )
     ),
-    tabPanel(
-      'By tribe',
+    tabPanel('By tribe', div(
+      style = 'padding: 20px;',
+      p(
+        'If historical or present-day values are unavailable for a tribe, '
+        ,
+        'the corresponding table entry will be left blank. Percent change is only '
+        ,
+        'shown when both values are available.'
+      ),
       plotlyOutput(
         'plot_temp_precip_for_tribe_gg',
         width = '100%',
         height = '80vh'
       ),
-      div(
-        style = 'overflow-x: auto;',
-        tableOutput('tribe_summary_table')
-      )
-    ),
+      div(style = 'overflow-x: auto;', tableOutput('tribe_summary_table'))
+    )),
     tabPanel('Map', div(
       style = 'padding: 20px;',
       p(
-        'We have chosen to omit the option to view all parcels for efficiency reasons, but',
-        a('landgrabu.org', href = 'https://landgrabu.org', target = '_blank'),
+        'We have chosen to omit the option to view all parcels for efficiency reasons, but'
+        ,
+        a('landgrabu.org', href = 'https://landgrabu.org', target = '_blank')
+        ,
         'provides this option.'
       ),
       leafletOutput('map', width = '100%', height = '65vh')
