@@ -228,38 +228,46 @@ tribe_summary <- function(df, tribe_name, var_labels) {
     Present = NA,
     Historic = NA,
     Percent_Change = NA,
-    Note = ""
+    Note = ''
   )
   
   for (i in seq_along(var_labels)) {
+    
     pct_col <- var_labels[i]
+    present_col <- sub('pct_change_', '', pct_col)
+    historic_col <- sub('_P$', '_H', present_col)
     
-    # remove pct_change_
-    present_col <- sub("pct_change_", "", pct_col)
+    has_present <- present_col %in% names(tribe) &&
+      !is.na(tribe[[present_col]][1])
+    has_historic <- historic_col %in% names(tribe) &&
+      !is.na(tribe[[historic_col]][1])
     
-    historic_col <- sub("_P$", "_H", present_col)
-    
-    # present value
-    if (present_col %in% names(tribe)) {
+    if (has_present) {
       result$Present[i] <- tribe[[present_col]][1]
     }
-    
-    # historic value + change
-    if (historic_col %in% names(tribe) &&
-        !is.na(tribe[[historic_col]][1])) {
+    if (has_historic) {
       result$Historic[i] <- tribe[[historic_col]][1]
-      
-      result$Percent_Change[i] <-
-        (result$Present[i] - result$Historic[i]) /
-        result$Historic[i] * 100
-      
-    } else {
+    }
+    
+    if (has_present && has_historic) {
+      if (result$Historic[i] != 0) {
+        result$Percent_Change[i] <-
+          (result$Present[i] - result$Historic[i]) /
+          result$Historic[i] * 100
+      }
+    } else if (!has_present && !has_historic) {
       result$Note[i] <-
-        "Historical values unavailable for this tribe"
-      
+        'Present and historical values unavailable for this tribe'
+    } else if (!has_present) {
+      result$Note[i] <-
+        'Present value unavailable for this tribe'
+    } else if (!has_historic) {
+      result$Note[i] <-
+        'Historical value unavailable for this tribe'
     }
   }
-  names(result)[names(result) == "Percent_Change"] <- "% change"
+  
+  names(result)[names(result) == 'Percent_Change'] <- '% change'
   
   result
 }
@@ -273,8 +281,8 @@ plot_temp_precip_for_tribe_gg <- function(df, tribe_name) {
   
   months <- 1:12
   
-  has_temp_history <- all(paste0("temp_mean_", 1:12, "_H") %in% names(tribe_data)) &&
-    !all(is.na(tribe_data[paste0("temp_mean_", 1:12, "_H")]))
+  has_temp_history <- all(paste0('temp_mean_', 1:12, '_H') %in% names(tribe_data)) &&
+    !all(is.na(tribe_data[paste0('temp_mean_', 1:12, '_H')]))
   
   temp_data <- data.frame(
     Month = rep(months, 2),
@@ -291,8 +299,8 @@ plot_temp_precip_for_tribe_gg <- function(df, tribe_name) {
     DataType = rep(c('Present', 'Historic'), each = 12)
   )
   
-  has_precip_history <- all(paste0("precip_mean_", 1:12, "_H") %in% names(tribe_data)) &&
-    !all(is.na(tribe_data[paste0("precip_mean_", 1:12, "_H")]))
+  has_precip_history <- all(paste0('precip_mean_', 1:12, '_H') %in% names(tribe_data)) &&
+    !all(is.na(tribe_data[paste0('precip_mean_', 1:12, '_H')]))
   
   precip_data <- data.frame(
     Month = rep(months, 2),
@@ -436,7 +444,7 @@ map <- function(df,
   legend_var <- paste0(names(var_labels)[var_labels == var], ' (% change)')
   
   uni_icon <- makeIcon(
-    iconUrl = "assets/uni.png",
+    iconUrl = 'assets/uni.png',
     iconWidth = 18,
     iconHeight = 18,
     iconAnchorX = 9,

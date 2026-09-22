@@ -15,7 +15,6 @@ source('helpers.R')
 # LOAD DATA
 # ============================================================
 all_data <- read_csv('data/Data_Analysis_combined.csv', show_col_types = FALSE)
-additional_data <- read_csv('data/Additional_Tribes.csv', show_col_types = FALSE)
 res_shapes  <- readRDS('data/preprocessed/reservations.rds')
 ok_shapes <- readRDS('data/preprocessed/ok_reservations.rds')
 uni_shapes  <- readRDS('data/preprocessed/universities.rds')
@@ -52,7 +51,7 @@ var_labels <- c(
   'Precipitation' = 'pct_change_precip_mean_ann_P'
 )
 
-# cat("=== Oklahoma tribes missing from Data_Analysis_all.csv ===\n")
+# cat('=== Oklahoma tribes missing from Data_Analysis_all.csv ===\n')
 # 
 # ok_tribes <- ok_shapes %>%
 #   st_drop_geometry() %>%
@@ -65,7 +64,7 @@ var_labels <- c(
 # 
 # print(setdiff(ok_tribes, csv_tribes))
 # 
-# cat("===============================================\n")
+# cat('===============================================\n')
 
 # ============================================================
 # UI LAYOUT
@@ -145,7 +144,7 @@ ui <- page_sidebar(
         height = '80vh'
       ),
       div(
-        style = "overflow-x: auto;",
+        style = 'overflow-x: auto;',
         tableOutput('tribe_summary_table')
       )
     ),
