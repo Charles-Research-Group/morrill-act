@@ -150,7 +150,7 @@ prod_sec_scatterplot <- function(df) {
       range = c(3, 10),
       breaks = c(1e4, 1e5, 5e5, 1e6, 2e6),
       labels = c('10,000', '100,000', '500,000', '1,000,000', '2,000,000')
-    ) + 
+    ) +
     coord_cartesian(
       xlim = range(df$pct_change_nccpi3all_P, na.rm = TRUE) * 1.2,
       ylim = range(df$pct_change_Food_Insecurity_Rate_2018_P, na.rm = TRUE) * 1.2
@@ -205,7 +205,7 @@ temp_precip_scatterplot <- function(df) {
       range = c(3, 10),
       breaks = c(1e4, 1e5, 5e5, 1e6, 2e6),
       labels = c('10,000', '100,000', '500,000', '1,000,000', '2,000,000')
-    ) + 
+    ) +
     coord_cartesian(
       xlim = range(df$pct_change_precip_mean_ann_P, na.rm = TRUE) * 1.2,
       ylim = range(df$pct_change_temp_mean_ann_P, na.rm = TRUE) * 1.2
@@ -216,8 +216,53 @@ temp_precip_scatterplot <- function(df) {
 }
 
 # ============================================================
-# LINE PLOTS
+# TEMP-PRECIP LINE PLOTS & TABLE BY TRIBE
 # ============================================================
+
+tribe_summary <- function(df, tribe_name, var_labels) {
+  tribe <- df %>%
+    filter(Tribe == tribe_name)
+  
+  result <- data.frame(
+    Variable = names(var_labels),
+    Present = NA,
+    Historic = NA,
+    Percent_Change = NA,
+    Note = ""
+  )
+  
+  for (i in seq_along(var_labels)) {
+    pct_col <- var_labels[i]
+    
+    # remove pct_change_
+    present_col <- sub("pct_change_", "", pct_col)
+    
+    historic_col <- sub("_P$", "_H", present_col)
+    
+    # present value
+    if (present_col %in% names(tribe)) {
+      result$Present[i] <- tribe[[present_col]][1]
+    }
+    
+    # historic value + change
+    if (historic_col %in% names(tribe) &&
+        !is.na(tribe[[historic_col]][1])) {
+      result$Historic[i] <- tribe[[historic_col]][1]
+      
+      result$Percent_Change[i] <-
+        (result$Present[i] - result$Historic[i]) /
+        result$Historic[i] * 100
+      
+    } else {
+      result$Note[i] <-
+        "Historical values unavailable for this tribe"
+      
+    }
+  }
+  names(result)[names(result) == "Percent_Change"] <- "% change"
+  
+  result
+}
 
 plot_temp_precip_for_tribe_gg <- function(df, tribe_name) {
   tribe_data <- df %>% filter(Tribe == tribe_name)
@@ -228,29 +273,39 @@ plot_temp_precip_for_tribe_gg <- function(df, tribe_name) {
   
   months <- 1:12
   
+  has_temp_history <- all(paste0("temp_mean_", 1:12, "_H") %in% names(tribe_data)) &&
+    !all(is.na(tribe_data[paste0("temp_mean_", 1:12, "_H")]))
+  
   temp_data <- data.frame(
     Month = rep(months, 2),
-    Mean = c(
-      sapply(months, function(i) tribe_data[[paste0('temp_mean_', i, '_P')]]),
-      sapply(months, function(i) tribe_data[[paste0('temp_mean_', i, '_H')]])
-    ),
-    StdDev = c(
-      sapply(months, function(i) tribe_data[[paste0('temp_std_', i, '_P')]]),
-      sapply(months, function(i) tribe_data[[paste0('temp_std_', i, '_H')]])
-    ),
+    Mean = c(sapply(months, function(i)
+      tribe_data[[paste0('temp_mean_', i, '_P')]]), if (has_temp_history) {
+        sapply(months, function(i)
+          tribe_data[[paste0('temp_mean_', i, '_H')]])
+      }),
+    StdDev = c(sapply(months, function(i)
+      tribe_data[[paste0('temp_std_', i, '_P')]]), if (has_temp_history) {
+        sapply(months, function(i)
+          tribe_data[[paste0('temp_std_', i, '_H')]])
+      }),
     DataType = rep(c('Present', 'Historic'), each = 12)
   )
   
+  has_precip_history <- all(paste0("precip_mean_", 1:12, "_H") %in% names(tribe_data)) &&
+    !all(is.na(tribe_data[paste0("precip_mean_", 1:12, "_H")]))
+  
   precip_data <- data.frame(
     Month = rep(months, 2),
-    Mean = c(
-      sapply(months, function(i) tribe_data[[paste0('precip_mean_', i, '_P')]]),
-      sapply(months, function(i) tribe_data[[paste0('precip_mean_', i, '_H')]])
-    ),
-    StdDev = c(
-      sapply(months, function(i) tribe_data[[paste0('precip_std_', i, '_P')]]),
-      sapply(months, function(i) tribe_data[[paste0('precip_std_', i, '_H')]])
-    ),
+    Mean = c(sapply(months, function(i)
+      tribe_data[[paste0('precip_mean_', i, '_P')]]), if (has_precip_history) {
+        sapply(months, function(i)
+          tribe_data[[paste0('precip_mean_', i, '_H')]])
+      }),
+    StdDev = c(sapply(months, function(i)
+      tribe_data[[paste0('precip_std_', i, '_P')]]), if (has_precip_history) {
+        sapply(months, function(i)
+          tribe_data[[paste0('precip_std_', i, '_H')]])
+      }),
     DataType = rep(c('Present', 'Historic'), each = 12)
   )
   
@@ -262,17 +317,30 @@ plot_temp_precip_for_tribe_gg <- function(df, tribe_name) {
       legend.title = element_blank()
     )
   
-  temp_plot <- ggplot(temp_data, aes(x = Month, y = Mean, color = DataType, group = DataType)) +
+  temp_plot <- suppressWarnings(ggplot(temp_data,
+                      aes(
+                        x = Month,
+                        y = Mean,
+                        color = DataType,
+                        group = DataType
+                      )) +
     geom_line(aes(text = paste0('Mean: ', round(Mean, 2), '°C')), size = 1) +
     geom_point(aes(text = paste0('Mean: ', round(Mean, 2), '°C')), size = 3) +
     geom_errorbar(aes(ymin = Mean - StdDev, ymax = Mean + StdDev), width = 0.2) +
     scale_color_manual(values = c('Present' = 'blue', 'Historic' = 'red')) +
     labs(y = 'Temperature (°C)', x = NULL) +
     custom_theme
+  )
   
   temp_plotly <- ggplotly(temp_plot, tooltip = 'text')
   
-  precip_plot <- ggplot(precip_data, aes(x = Month, y = Mean, color = DataType, group = DataType)) +
+  precip_plot <- suppressWarnings(ggplot(precip_data,
+                        aes(
+                          x = Month,
+                          y = Mean,
+                          color = DataType,
+                          group = DataType
+                        )) +
     geom_line(aes(text = paste0('Mean: ', round(Mean, 2), 'mm')), size = 1) +
     geom_point(aes(text = paste0('Mean: ', round(Mean, 2), 'mm')), size = 3) +
     geom_errorbar(aes(ymin = Mean - StdDev, ymax = Mean + StdDev), width = 0.2) +
@@ -280,6 +348,7 @@ plot_temp_precip_for_tribe_gg <- function(df, tribe_name) {
     labs(y = 'Precipitation (mm)', x = 'Month') +
     scale_x_continuous(breaks = seq(2, 12, by = 2)) +
     custom_theme
+  )
   
   precip_plotly <- ggplotly(precip_plot, tooltip = 'text')
   
@@ -311,11 +380,20 @@ plot_temp_precip_for_tribe_gg <- function(df, tribe_name) {
         yanchor = 'top'
       ),
       margin = list(t = 80, b = 60),
-
+      
       modebar = list(
-        remove = c('zoom2d', 'pan2d', 'select2d', 'lasso2d', 'zoomIn2d',
-                   'zoomOut2d', 'autoScale2d', 'hoverClosestCartesian',
-                   'hoverCompareCartesian', 'toggleSpikelines')
+        remove = c(
+          'zoom2d',
+          'pan2d',
+          'select2d',
+          'lasso2d',
+          'zoomIn2d',
+          'zoomOut2d',
+          'autoScale2d',
+          'hoverClosestCartesian',
+          'hoverCompareCartesian',
+          'toggleSpikelines'
+        )
       )
     )
   
@@ -344,10 +422,7 @@ map <- function(df,
   
   uni_points <- uni_data %>% st_cast('POINT', warn = FALSE)
   
-  all_values <- c(
-    tribe_data[[var]],
-    ok_tribe_data[[var]]
-  )
+  all_values <- c(tribe_data[[var]], ok_tribe_data[[var]])
   
   max_abs <- quantile(abs(all_values), 0.95, na.rm = TRUE)
   
@@ -378,9 +453,9 @@ map <- function(df,
       data = tribe_data,
       color = 'brown',
       weight = 3,
-      fillColor = pal(
-        pmax(pmin(tribe_data[[var]], max_abs), -max_abs)
-      ),
+      fillColor = pal(pmax(pmin(
+        tribe_data[[var]], max_abs
+      ), -max_abs)),
       fillOpacity = 0.8,
       popup = paste0(
         'Tribe: ',
@@ -398,9 +473,9 @@ map <- function(df,
       data = ok_tribe_data,
       color = 'brown',
       weight = 3,
-      fillColor = pal(
-        pmax(pmin(ok_tribe_data[[var]], max_abs), -max_abs)
-      ),
+      fillColor = pal(pmax(
+        pmin(ok_tribe_data[[var]], max_abs), -max_abs
+      )),
       fillOpacity = 0.8,
       popup = paste0(
         'Tribe: ',

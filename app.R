@@ -14,7 +14,8 @@ source('helpers.R')
 # ============================================================
 # LOAD DATA
 # ============================================================
-all_data <- read_csv('data/Data_Analysis_all.csv', show_col_types = FALSE)
+all_data <- read_csv('data/Data_Analysis_combined.csv', show_col_types = FALSE)
+additional_data <- read_csv('data/Additional_Tribes.csv', show_col_types = FALSE)
 res_shapes  <- readRDS('data/preprocessed/reservations.rds')
 ok_shapes <- readRDS('data/preprocessed/ok_reservations.rds')
 uni_shapes  <- readRDS('data/preprocessed/universities.rds')
@@ -50,6 +51,21 @@ var_labels <- c(
   'Temperature' = 'pct_change_temp_mean_ann_P',
   'Precipitation' = 'pct_change_precip_mean_ann_P'
 )
+
+# cat("=== Oklahoma tribes missing from Data_Analysis_all.csv ===\n")
+# 
+# ok_tribes <- ok_shapes %>%
+#   st_drop_geometry() %>%
+#   pull(TRIBE_NAME) %>%
+#   unique()
+# 
+# csv_tribes <- all_data %>%
+#   pull(Tribe) %>%
+#   unique()
+# 
+# print(setdiff(ok_tribes, csv_tribes))
+# 
+# cat("===============================================\n")
 
 # ============================================================
 # UI LAYOUT
@@ -127,8 +143,11 @@ ui <- page_sidebar(
         'plot_temp_precip_for_tribe_gg',
         width = '100%',
         height = '80vh'
+      ),
+      div(
+        style = "overflow-x: auto;",
+        tableOutput('tribe_summary_table')
       )
-      
     ),
     tabPanel('Map', div(
       style = 'padding: 20px;',
@@ -283,6 +302,11 @@ server <- function(input, output, session) {
   output$plot_temp_precip_for_tribe_gg <- renderPlotly({
     req(input$tribe)
     plot_temp_precip_for_tribe_gg(all_data, input$tribe)
+  })
+  
+  output$tribe_summary_table <- renderTable({
+    req(input$tribe)
+    tribe_summary(all_data, input$tribe, var_labels)
   })
   
   output$map <- renderLeaflet({
