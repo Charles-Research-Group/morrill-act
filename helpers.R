@@ -487,7 +487,7 @@ map <- function(df,
                 var,
                 var_labels) {
   tribes <- df$Tribe
-  tribe_shapes <- res_shapes %>% filter(TRIBE_NAME %in% tribes)
+  tribe_shapes <- res_shapes
   tribe_data <- tribe_shapes %>%
     left_join(df, by = c('TRIBE_NAME' = 'Tribe'))
   
@@ -497,21 +497,12 @@ map <- function(df,
   all_values <- all_values[!is.na(all_values)]
   
   if (length(all_values) == 0) {
-    return(
-      leaflet() %>%
-        addTiles() %>%
-        setView(
-          lng = -97,
-          lat = 38,
-          zoom = 3
-        )
-    )
-  }
-  
-  max_abs <- quantile(abs(all_values), 0.95, na.rm = TRUE)
-  
-  if (is.na(max_abs) || max_abs == 0) {
-    max_abs <- max(abs(all_values), na.rm = TRUE)
+    max_abs <- 1
+  } else {
+    max_abs <- quantile(abs(all_values), 0.95, na.rm = TRUE)
+    if (is.na(max_abs) || max_abs == 0) {
+      max_abs <- max(abs(all_values), na.rm = TRUE)
+    }
   }
   
   pal <- colorNumeric(
