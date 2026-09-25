@@ -302,6 +302,11 @@ server <- function(input, output, session) {
   
   output$plot_temp_precip_for_tribe_gg <- renderPlotly({
     req(input$tribe)
+    
+    if (input$tribe == "All Tribes") {
+      return(NULL)
+    }
+    
     plot_temp_precip_for_tribe_gg(all_data, input$tribe)
   })
   

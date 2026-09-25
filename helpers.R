@@ -25,10 +25,14 @@ filter_data <- function(data) {
   
   # Select only the desired columns for the output
   data_change %>%
-    select(Tribe,
-           grep('pct_change_', names(data_change), value = TRUE),
-           Acres,
-           Endow_Raised_Parcel)
+    select(
+      Tribe,
+      contains("pct_change"),
+      contains("_H"),
+      contains("_P"),
+      Acres,
+      Endow_Raised_Parcel
+    )
 }
 
 # ============================================================
@@ -402,6 +406,80 @@ plot_temp_precip_for_tribe_gg <- function(df, tribe_name) {
 # MAP
 # ============================================================
 
+tribe_popup <- function(data, var, var_labels) {
+  
+  var_name <- names(var_labels)[var_labels == var]
+  
+  popups <- character(nrow(data))
+  
+  for (i in seq_len(nrow(data))) {
+    
+    value <- data[[var]][i]
+    
+    tribe <- data[['TRIBE_NAME']][i]
+    
+    popup <- paste0(
+      "Tribe: ", tribe
+    )
+    
+    if (!is.na(value)) {
+      popup <- paste0(
+        popup,
+        "<br>",
+        var_name,
+        ": ",
+        round(value, 2),
+        "%"
+      )
+    } else {
+      
+      pct_col <- var
+      present_col <- sub('pct_change_', '', pct_col)
+      historic_col <- sub('_P$', '_H', present_col)
+      
+      has_present <- present_col %in% names(data) &&
+        !is.na(data[[present_col]][i])
+      
+      has_historic <- historic_col %in% names(data) &&
+        !is.na(data[[historic_col]][i])
+      
+      if (has_present) {
+        popup <- paste0(
+          popup,
+          "<br>",
+          var_name,
+          " (Present): ",
+          round(data[[present_col]][i], 2)
+        )
+      } else if (has_historic) {
+        popup <- paste0(
+          popup,
+          "<br>",
+          var_name,
+          " (Historic): ",
+          round(data[[historic_col]][i], 2)
+        )
+      } else {
+        popup <- paste0(
+          popup,
+          "<br>",
+          var_name,
+          ": Unavailable"
+        )
+      }
+    }
+    
+    popup <- paste0(
+      popup,
+      "<br>Endowment Raised: NA"
+    )
+    
+    popups[i] <- popup
+  }
+  
+  popups
+}
+
 map <- function(df,
                 uni_data,
                 parcel_data,
@@ -422,7 +500,25 @@ map <- function(df,
   
   all_values <- c(tribe_data[[var]], ok_tribe_data[[var]])
   
+  all_values <- all_values[!is.na(all_values)]
+  
+  if (length(all_values) == 0) {
+    return(
+      leaflet() %>%
+        addTiles() %>%
+        setView(
+          lng = -97,
+          lat = 38,
+          zoom = 3
+        )
+    )
+  }
+  
   max_abs <- quantile(abs(all_values), 0.95, na.rm = TRUE)
+  
+  if (is.na(max_abs) || max_abs == 0) {
+    max_abs <- max(abs(all_values), na.rm = TRUE)
+  }
   
   pal <- colorNumeric(
     palette = rev(brewer.pal(11, 'RdYlBu')),
@@ -455,16 +551,7 @@ map <- function(df,
         tribe_data[[var]], max_abs
       ), -max_abs)),
       fillOpacity = 0.8,
-      popup = paste0(
-        'Tribe: ',
-        tribe_data[['TRIBE_NAME']],
-        '<br>Change: ',
-        round(tribe_data[[var]], 2),
-        '%',
-        '<br>Endowment Raised: ',
-        round(tribe_data[['Endow_Raised_Parcel']], 2),
-        '$'
-      ),
+      popup = tribe_popup(tribe_data, var, var_labels),
       group = 'Tribes'
     ) %>%
     addPolygons(
@@ -475,16 +562,7 @@ map <- function(df,
         pmin(ok_tribe_data[[var]], max_abs), -max_abs
       )),
       fillOpacity = 0.8,
-      popup = paste0(
-        'Tribe: ',
-        ok_tribe_data[['TRIBE_NAME']],
-        '<br>Change: ',
-        round(ok_tribe_data[[var]], 2),
-        '%',
-        '<br>Endowment Raised: ',
-        round(ok_tribe_data[['Endow_Raised_Parcel']], 2),
-        '$'
-      ),
+      popup = tribe_popup(ok_tribe_data, var, var_labels),
       group = 'Tribes'
     )
   
