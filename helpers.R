@@ -484,22 +484,16 @@ map <- function(df,
                 uni_data,
                 parcel_data,
                 res_shapes,
-                ok_shapes,
                 var,
                 var_labels) {
   tribes <- df$Tribe
   tribe_shapes <- res_shapes %>% filter(TRIBE_NAME %in% tribes)
-  ok_tribe_shapes <- ok_shapes %>% filter(TRIBE_NAME %in% tribes)
-  
   tribe_data <- tribe_shapes %>%
-    left_join(df, by = c('TRIBE_NAME' = 'Tribe'))
-  ok_tribe_data <- ok_tribe_shapes %>%
     left_join(df, by = c('TRIBE_NAME' = 'Tribe'))
   
   uni_points <- uni_data %>% st_cast('POINT', warn = FALSE)
   
-  all_values <- c(tribe_data[[var]], ok_tribe_data[[var]])
-  
+  all_values <- tribe_data[[var]]
   all_values <- all_values[!is.na(all_values)]
   
   if (length(all_values) == 0) {
@@ -552,17 +546,6 @@ map <- function(df,
       ), -max_abs)),
       fillOpacity = 0.8,
       popup = tribe_popup(tribe_data, var, var_labels),
-      group = 'Tribes'
-    ) %>%
-    addPolygons(
-      data = ok_tribe_data,
-      color = 'brown',
-      weight = 3,
-      fillColor = pal(pmax(
-        pmin(ok_tribe_data[[var]], max_abs), -max_abs
-      )),
-      fillOpacity = 0.8,
-      popup = tribe_popup(ok_tribe_data, var, var_labels),
       group = 'Tribes'
     )
   

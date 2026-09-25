@@ -16,7 +16,6 @@ source('helpers.R')
 # ============================================================
 all_data <- read_csv('data/Data_Analysis_combined.csv', show_col_types = FALSE)
 res_shapes  <- readRDS('data/preprocessed/reservations.rds')
-ok_shapes <- readRDS('data/preprocessed/ok_reservations.rds')
 uni_shapes  <- readRDS('data/preprocessed/universities.rds')
 uni_list <- read_csv('data/University_List.csv', show_col_types = FALSE)
 uni_info <- read_csv('data/landgrabu-data/csvs/Universities.csv',
@@ -46,21 +45,6 @@ var_labels <- c(
   'Temperature' = 'pct_change_temp_mean_ann_P',
   'Precipitation' = 'pct_change_precip_mean_ann_P'
 )
-
-# cat('=== Oklahoma tribes missing from Data_Analysis_all.csv ===\n')
-#
-# ok_tribes <- ok_shapes %>%
-#   st_drop_geometry() %>%
-#   pull(TRIBE_NAME) %>%
-#   unique()
-#
-# csv_tribes <- all_data %>%
-#   pull(Tribe) %>%
-#   unique()
-#
-# print(setdiff(ok_tribes, csv_tribes))
-#
-# cat('===============================================\n')
 
 # ============================================================
 # UI LAYOUT
@@ -245,17 +229,6 @@ server <- function(input, output, session) {
     }
   })
   
-  selected_ok_shapes <- reactive({
-    req(input$tribe)
-    
-    if (input$tribe == 'All Tribes') {
-      ok_shapes
-    } else {
-      ok_shapes %>%
-        filter(TRIBE_NAME == input$tribe)
-    }
-  })
-  
   selected_parcel_data <- reactive({
     req(input$uni, input$tribe)
     
@@ -322,7 +295,6 @@ server <- function(input, output, session) {
       selected_uni_data(),
       selected_parcel_data(),
       selected_res_shapes(),
-      selected_ok_shapes(),
       input$var,
       var_labels
     )

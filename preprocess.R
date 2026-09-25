@@ -381,19 +381,3 @@ write_csv(
   combined_data,
   "data/Data_Analysis_combined.csv"
 )
-
-cat(
-  "Saved combined dataset:",
-  nrow(combined_data),
-  "rows\n"
-)
-
-cat(
-  "Original tribes:",
-  length(unique(all_data$Tribe)),
-  "\nAdditional tribes added:",
-  length(additional_tribes),
-  "\nTotal tribes:",
-  length(unique(combined_data$Tribe)),
-  "\n"
-)
