@@ -27,9 +27,9 @@ filter_data <- function(data) {
   data_change %>%
     select(
       Tribe,
-      contains("pct_change"),
-      contains("_H"),
-      contains("_P"),
+      contains('pct_change'),
+      contains('_H'),
+      contains('_P'),
       Acres,
       Endow_Raised_Parcel
     )
@@ -261,7 +261,11 @@ tribe_summary <- function(df, tribe_name, var_labels) {
     }
   }
   
+  # Format for display
   names(result)[names(result) == 'Percent_Change'] <- '% Change'
+  result$Present <- ifelse(is.na(result$Present), 'N/A', round(result$Present, 2))
+  result$Historic <- ifelse(is.na(result$Historic), 'N/A', round(result$Historic, 2))
+  result$`% Change` <- ifelse(is.na(result$`% Change`), 'N/A', round(result$`% Change`, 2))
   
   result
 }
@@ -419,17 +423,17 @@ tribe_popup <- function(data, var, var_labels) {
     tribe <- data[['TRIBE_NAME']][i]
     
     popup <- paste0(
-      "Tribe: ", tribe
+      'Tribe: ', tribe
     )
     
     if (!is.na(value)) {
       popup <- paste0(
         popup,
-        "<br>",
+        '<br>',
         var_name,
-        ": ",
+        ': ',
         round(value, 2),
-        "%"
+        '%'
       )
     } else {
       
@@ -446,32 +450,32 @@ tribe_popup <- function(data, var, var_labels) {
       if (has_present) {
         popup <- paste0(
           popup,
-          "<br>",
+          '<br>',
           var_name,
-          " (Present): ",
+          ' (Present): ',
           round(data[[present_col]][i], 2)
         )
       } else if (has_historic) {
         popup <- paste0(
           popup,
-          "<br>",
+          '<br>',
           var_name,
-          " (Historic): ",
+          ' (Historic): ',
           round(data[[historic_col]][i], 2)
         )
       } else {
         popup <- paste0(
           popup,
-          "<br>",
+          '<br>',
           var_name,
-          ": Unavailable"
+          ': Unavailable'
         )
       }
     }
     
     popup <- paste0(
       popup,
-      "<br>Endowment Raised: NA"
+      '<br>Endowment Raised: N/A'
     )
     
     popups[i] <- popup
