@@ -346,38 +346,3 @@
 #   nrow(university_tribe_list),
 #   "university/tribe combinations\n"
 # )
-
-# ============================================================
-# COMBINE DATA
-# ============================================================
-
-library(readr)
-library(dplyr)
-
-all_data <- read_csv(
-  "data/Data_Analysis_all.csv",
-  show_col_types = FALSE
-)
-
-full_data <- read_csv(
-  "data/Full_Data_all.csv",
-  show_col_types = FALSE
-)
-
-additional_tribes <- setdiff(
-  unique(full_data$Tribe),
-  unique(all_data$Tribe)
-)
-
-additional_data <- full_data %>%
-  filter(Tribe %in% additional_tribes)
-
-combined_data <- bind_rows(
-  all_data,
-  additional_data
-)
-
-write_csv(
-  combined_data,
-  "data/Data_Analysis_combined.csv"
-)

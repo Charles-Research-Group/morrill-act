@@ -563,6 +563,16 @@ map <- function(df,
     m <- m %>% hideGroup('Parcels')
   }
   
+  if (length(all_values) > 0) {
+    m <- m %>%
+      addLegend(
+        position = 'bottomright',
+        pal = pal,
+        values = pmax(pmin(all_values, max_abs), -max_abs),
+        title = legend_var
+      )
+  }
+  
   m <- m %>%
     addMarkers(
       data = uni_points,
@@ -575,12 +585,6 @@ map <- function(df,
         uni_data[['Adjusted_ Total_Value_1914']]
       ),
       group = 'Universities'
-    ) %>%
-    addLegend(
-      position = 'bottomright',
-      pal = pal,
-      values = pmax(pmin(all_values, max_abs), -max_abs),
-      title = legend_var
     ) %>%
     addLegend(
       position = 'bottomleft',
