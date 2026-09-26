@@ -489,6 +489,7 @@ map <- function(df,
                 parcel_data,
                 res_shapes,
                 var,
+                tribe,
                 var_labels) {
   tribes <- df$Tribe
   tribe_shapes <- res_shapes
@@ -562,7 +563,7 @@ map <- function(df,
     m <- m %>% hideGroup('Parcels')
   }
   
-  m %>%
+  m <- m %>%
     addMarkers(
       data = uni_points,
       icon = uni_icon,
@@ -590,8 +591,25 @@ map <- function(df,
     addLayersControl(
       overlayGroups = c('Universities', 'Tribes', 'Parcels'),
       options = layersControlOptions(collapsed = FALSE)
-    ) %>%
-    setView(lng = -97,
-            lat = 38,
-            zoom = 3)
+    )
+  
+    if (tribe != 'All Tribes' && nrow(tribe_data) > 0) {
+      bbox <- st_bbox(st_transform(tribe_data, 4326))
+      
+      if (all(is.finite(bbox))) {
+        m <- m %>%
+          fitBounds(
+            lng1 = as.numeric(bbox['xmin']),
+            lat1 = as.numeric(bbox['ymin']),
+            lng2 = as.numeric(bbox['xmax']),
+            lat2 = as.numeric(bbox['ymax'])
+          )
+      } else {
+        m <- m %>% setView(lng = -97, lat = 38, zoom = 3)
+      }
+    } else {
+      m <- m %>% setView(lng = -97, lat = 38, zoom = 3)
+    }
+  
+  m
 }

@@ -296,6 +296,7 @@ server <- function(input, output, session) {
       selected_parcel_data(),
       selected_res_shapes(),
       input$var,
+      input$tribe,
       var_labels
     )
   })
