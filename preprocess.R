@@ -346,3 +346,41 @@
 #   nrow(university_tribe_list),
 #   "university/tribe combinations\n"
 # )
+
+
+library(sf)
+library(dplyr)
+
+ok <- st_read('data/reservation-shapes/OklahomaTribalStatisticalAreas.shp')
+res_shapes <- readRDS('data/preprocessed/reservations.rds')   # whichever file you currently have
+
+add_both_areas <- function(res, ok, tribe_name) {
+  tmpl <- res %>% filter(TRIBE_NAME == tribe_name) %>% slice(1)
+  stopifnot(nrow(tmpl) == 1)
+  
+  new <- ok %>%
+    filter(TRIBE_NAME == tribe_name) %>%
+    st_transform(st_crs(res)) %>%
+    st_make_valid()
+  stopifnot(nrow(new) >= 1)
+  
+  rows <- tmpl[rep(1, nrow(new)), ]
+  st_geometry(rows) <- st_cast(st_geometry(new), 'MULTIPOLYGON')
+  
+  res %>%
+    filter(TRIBE_NAME != tribe_name) %>%
+    bind_rows(rows)
+}
+
+res_shapes <- res_shapes %>%
+  add_both_areas(ok, 'The Muscogee (Creek) Nation') %>%
+  add_both_areas(ok, 'Delaware Nation, Oklahoma')
+
+# sanity check: should show 2 rows each
+res_shapes %>%
+  filter(TRIBE_NAME %in% c('The Muscogee (Creek) Nation', 'Delaware Nation, Oklahoma')) %>%
+  mutate(area_km2 = as.numeric(st_area(geometry)) / 1e6) %>%
+  st_drop_geometry() %>%
+  select(TRIBE_NAME, area_km2)
+
+saveRDS(res_shapes, 'data/preprocessed/reservations_clean2.rds')
