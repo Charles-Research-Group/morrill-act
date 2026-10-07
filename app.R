@@ -297,6 +297,7 @@ server <- function(input, output, session) {
       selected_res_shapes(),
       input$var,
       input$tribe,
+      input$uni,
       var_labels
     )
   })

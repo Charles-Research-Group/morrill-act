@@ -490,9 +490,19 @@ map <- function(df,
                 res_shapes,
                 var,
                 tribe,
+                uni,
                 var_labels) {
+  show_unmatched <- uni == 'All 1862 Land Grant Institutions' &&
+    tribe == 'All Tribes'
+  
   tribes <- df$Tribe
   tribe_shapes <- res_shapes
+  
+  if (!show_unmatched) {
+    tribe_shapes <- tribe_shapes %>%
+      filter(TRIBE_NAME %in% df$Tribe)
+  }
+  
   tribe_data <- tribe_shapes %>%
     left_join(df, by = c('TRIBE_NAME' = 'Tribe'))
   
