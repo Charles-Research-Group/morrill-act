@@ -89,31 +89,37 @@ ui <- page_sidebar(
       p(
         'This app contains data visualizations exploring crop production, food
         insecurity, and climate trends in Indigenous tribes affected by the law.'
-      )
+      ),
+      tableOutput('variable_unit_table')
     )),
     tabPanel(
       'Violin plots',
       tags$style(
         '
-    @media (max-width: 768px) {
-      #violin-wrap { width: 100% !important; }
-    }
-  '
+        @media (max-width: 768px) {
+          #violin-wrap { width: 100% !important; }
+        }
+        '
       ),
       div(
         id = 'violin-wrap',
-        style = 'width: 50%; padding: 10px;',
+        style = 'width: 50%; padding: 20px;',
+        p('Description goes here'),
         plotlyOutput('violin_plot', width = '100%', height = '60vh')
       ),
       div(style = 'overflow-x: auto;', tableOutput('violin_plot_table'))
     ),
     tabPanel(
       'Scatterplots',
-      plotlyOutput('prod_sec_scatterplot', width = '100%', height = '40vh'),
-      plotlyOutput(
-        'temp_precip_scatterplot',
-        width = '100%',
-        height = '40vh'
+      div(
+        style = 'padding: 20px;',
+        p('Description goes here'),
+        plotlyOutput('prod_sec_scatterplot', width = '100%', height = '40vh'),
+        plotlyOutput(
+          'temp_precip_scatterplot',
+          width = '100%',
+          height = '40vh'
+        )
       )
     ),
     tabPanel('By tribe', div(
@@ -256,6 +262,35 @@ server <- function(input, output, session) {
   # ============================================================
   # PLOTS
   # ============================================================
+  output$variable_unit_table <- renderTable({
+    data.frame(
+      Variable = c(
+        'Food Insecurity',
+        'Child Food Insecurity',
+        'Cost Per Meal',
+        'Budget Shortfall',
+        'Food Productivity',
+        'FP: Small Grains',
+        'FP: Soybeans',
+        'FP: Corn',
+        'Temperature',
+        'Precipitation'
+      ),
+      Unit = c(
+        'Description goes here',
+        'Description goes here',
+        'Description goes here',
+        'Description goes here',
+        'Description goes here',
+        'Description goes here',
+        'Description goes here',
+        'Description goes here',
+        'Description goes here',
+        'Description goes here'
+      )
+    )
+  })
+  
   output$violin_plot <- renderPlotly({
     req(input$var)
     violin_plot(selected_data(), input$var)
