@@ -27,10 +27,10 @@ uni_data <- uni_shapes %>%
             by = c('Uni_Name' = 'University')) %>%
   st_cast('POINT', warn = FALSE)
 
-parcel_by_university_tribe <- readRDS('data/preprocessed/parcel_by_university_tribe_small.rds') %>%
+parcel_by_university_tribe <- readRDS('data/preprocessed/parcel_by_university_tribe.rds') %>%
   mutate(University.x = gsub('/', ' & ', University.x))
 
-parcel_by_university <- readRDS('data/preprocessed/parcel_by_university_small.rds') %>%
+parcel_by_university <- readRDS('data/preprocessed/parcel_by_university.rds') %>%
   mutate(University.x = gsub('/', ' & ', University.x))
 
 var_labels <- c(
