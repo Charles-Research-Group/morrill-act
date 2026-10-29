@@ -520,8 +520,23 @@ map <- function(df,
     }
   }
   
+  reverse_vars <- c(
+    'pct_change_Food_Insecurity_Rate_2018_P',
+    'pct_change_Child_Food_Insecurity_Rate_2018_P',
+    'pct_change_Cost_Per_Meal_2018_P',
+    'pct_change_Weighted_Annual_Food_Budget_Shortfall_2018_P',
+    'pct_change_temp_mean_ann_P',
+    'pct_change_precip_mean_ann_P'
+  )
+  
+  palette_colors <- brewer.pal(11, 'RdYlBu')
+  
+  if (var %in% reverse_vars) {
+    palette_colors <- rev(palette_colors)
+  }
+  
   pal <- colorNumeric(
-    palette = rev(brewer.pal(11, 'RdYlBu')),
+    palette = palette_colors,
     domain = c(-max_abs, max_abs),
     na.color = 'gray'
   )
